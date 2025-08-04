@@ -1,0 +1,66 @@
+# Source files
+src/
+*.ts
+!dist/**/*.d.ts
+
+# Config files
+tsconfig.json
+vitest.config.ts
+.eslintrc*
+.prettierrc*
+
+# Test files
+**/__tests__/
+**/*.test.*
+**/*.spec.*
+coverage/
+.nyc_output/
+
+# Development files
+examples/
+apps/
+kintone-as-code.config.js
+debug-*.js
+check-*.js
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+.travis.yml
+
+# Environment
+.env
+.env.*
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
+
+# Documentation source
+docs/
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Other
+.npmrc
+.editorconfig
+CONTRIBUTING.md
