@@ -4,6 +4,8 @@
 [![CI](https://github.com/kimotokensei/kintone-as-code/actions/workflows/ci.yml/badge.svg)](https://github.com/kimotokensei/kintone-as-code/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
+[日本語](README.ja.md)
+
 Manage kintone app configurations as code with type safety using Effect-TS.
 
 ## Features
