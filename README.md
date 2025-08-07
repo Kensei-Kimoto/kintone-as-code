@@ -16,6 +16,7 @@ Manage kintone app configurations as code with type safety using Effect-TS.
 - ✨ **Create apps** - Create new kintone apps from schema definitions
 - 🔧 **Environment management** - Support multiple kintone environments
 - 🎯 **Effect-TS powered** - Leverage the power of Effect-TS for schema validation
+- 📋 **Record Schema Generation** - Automatically generate type-safe record schemas for customization development
 
 ## Installation
 
@@ -44,7 +45,9 @@ This creates a `kintone-as-code.config.js` file with your environment settings.
 kintone-as-code export --app-id 123 --name customer-app
 ```
 
-This generates `apps/customer-app.schema.ts` with fully typed field definitions.
+This generates:
+- `apps/customer-app.schema.ts` - Fully typed field definitions
+- `apps/customer-app.record-schema.ts` - Type-safe record validation schema (new!)
 
 ### 3. Apply changes to existing app
 
@@ -198,11 +201,17 @@ Export kintone app configuration to TypeScript:
 kintone-as-code export [options]
 
 Options:
-  --app-id <id>    App ID to export (required)
-  --name <name>    Schema file name (required)
-  --env <env>      Environment name
-  --output <dir>   Output directory (default: "apps")
+  --app-id <id>             App ID to export (required)
+  --name <name>             Schema file name (required)
+  --env <env>               Environment name
+  --output <dir>            Output directory (default: "apps")
+  --with-record-schema      Generate record schema file (default: true)
+  --no-record-schema        Skip record schema generation
 ```
+
+The export command now generates two files by default:
+1. **Field Schema** (`{name}.schema.ts`) - Field definitions and configurations
+2. **Record Schema** (`{name}.record-schema.ts`) - Type-safe record validation with Effect Schema
 
 ### apply
 
@@ -241,12 +250,40 @@ Features:
 - Supports creating apps in specific spaces
 - Automatically deploys the app after creation
 
+## Record Schema Usage
+
+The generated record schema provides type-safe validation for kintone records:
+
+```typescript
+import { KintoneRestAPIClient } from '@kintone/rest-api-client';
+import { RecordSchema, validateRecord } from './apps/customer-app.record-schema';
+
+// Initialize client
+const client = new KintoneRestAPIClient({
+  baseUrl: 'https://example.cybozu.com',
+  auth: { apiToken: 'YOUR_API_TOKEN' }
+});
+
+// Fetch and validate record
+const response = await client.record.getRecord({ 
+  app: 123, 
+  id: 1 
+});
+const validatedRecord = validateRecord(response.record);
+// validatedRecord is now fully typed!
+
+// Custom validation rules
+import { CustomRecordSchema } from './apps/customer-app.record-schema';
+// Add your custom validation logic in the generated file
+```
+
 ## Best Practices
 
 1. **Version Control**: Commit your schema files to track app configuration changes
 2. **Environment Variables**: Use environment variables for app IDs to support multiple environments
 3. **Type Safety**: Leverage TypeScript's type checking to catch configuration errors early
 4. **Code Review**: Review schema changes as part of your development process
+5. **Record Validation**: Use generated record schemas in your customization code for type-safe data handling
 
 ## License
 

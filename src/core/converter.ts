@@ -32,3 +32,40 @@ export default defineAppSchema({
     throw new Error('Schema validation failed during export.');
   }
 };
+
+export const generateRecordSchemaCode = (schemaName: string): string => {
+  // Generate TypeScript code for record schema that imports from the field schema
+  const baseName = schemaName.replace(/\.schema$/, '');
+  
+  return `import { Schema } from 'effect';
+import { convertFormFieldsToRecordSchema, createRecordSchemaFromForm } from 'kintone-effect-schema';
+import { appFieldsConfig } from './${baseName}.schema.js';
+
+// Generate record schema from form field definitions
+const recordSchemas = convertFormFieldsToRecordSchema(appFieldsConfig);
+
+// Export the record schema for type-safe record validation
+export const RecordSchema = Schema.Struct(recordSchemas);
+
+// Helper function for record validation
+export const validateRecord = Schema.decodeUnknownSync(RecordSchema);
+
+// Optional: Export with custom validations
+// You can customize this by adding validation rules
+export const CustomRecordSchema = createRecordSchemaFromForm(appFieldsConfig, {
+  // Example: Add custom validation for specific fields
+  // price: (schema) => Schema.filter(
+  //   schema,
+  //   (field) => field.value !== null && Number(field.value) > 0,
+  //   { message: () => "Price must be positive" }
+  // )
+});
+
+// Helper function for custom validation
+export const validateRecordWithCustomRules = Schema.decodeUnknownSync(CustomRecordSchema);
+
+// Type inference helpers
+export type AppRecord = Schema.Schema.Type<typeof RecordSchema>;
+export type AppRecordEncoded = Schema.Schema.Encoded<typeof RecordSchema>;
+`;
+};

@@ -2,7 +2,7 @@
 import fs from 'fs/promises';
 import path from 'path';
 import { getKintoneClient } from '../core/kintone-client.js';
-import { convertKintoneFieldsToSchema } from '../core/converter.js';
+import { convertKintoneFieldsToSchema, generateRecordSchemaCode } from '../core/converter.js';
 import { loadConfig } from '../core/config.js';
 
 interface ExportOptions {
@@ -10,6 +10,7 @@ interface ExportOptions {
   name: string;
   env?: string | undefined;
   output?: string | undefined;
+  withRecordSchema?: boolean;
 }
 
 export const exportCommand = async (options: ExportOptions) => {
@@ -35,6 +36,14 @@ export const exportCommand = async (options: ExportOptions) => {
     await fs.writeFile(outputPath, schemaContent);
 
     console.log(`Successfully exported schema to ${outputPath}`);
+
+    // Generate record schema if requested (default: true)
+    if (options.withRecordSchema !== false) {
+      const recordSchemaContent = generateRecordSchemaCode(options.name);
+      const recordSchemaPath = path.join(outputDir, `${options.name}.record-schema.ts`);
+      await fs.writeFile(recordSchemaPath, recordSchemaContent);
+      console.log(`Successfully exported record schema to ${recordSchemaPath}`);
+    }
   } catch (error) {
     console.error(`Error during export: ${error instanceof Error ? error.message : String(error)}`);
   }

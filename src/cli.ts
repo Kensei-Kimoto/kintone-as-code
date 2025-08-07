@@ -44,6 +44,11 @@ yargs(hideBin(process.argv))
         .option('output', {
           type: 'string',
           description: 'Output directory',
+        })
+        .option('with-record-schema', {
+          type: 'boolean',
+          default: true,
+          description: 'Generate record schema file (default: true)',
         });
     },
     (argv) => {
@@ -52,6 +57,7 @@ yargs(hideBin(process.argv))
         name: argv.name,
         env: argv.env,
         output: argv.output,
+        withRecordSchema: argv['with-record-schema'],
       });
     }
   )

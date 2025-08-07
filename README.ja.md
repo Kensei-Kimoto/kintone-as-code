@@ -8,6 +8,7 @@ kintoneアプリの設定をコードで管理し、Effect-TSによる型安全�
 - 📝 **kintoneからエクスポート** - 既存アプリからスキーマファイルを生成
 - 🔧 **環境管理** - 複数のkintone環境をサポート
 - 🎯 **Effect-TS対応** - Effect-TSの強力なスキーマバリデーション機能
+- 📋 **レコードスキーマ生成** - カスタマイズ開発用の型安全なレコードスキーマを自動生成
 
 ## インストール
 
@@ -36,7 +37,9 @@ kintone-as-code init
 kintone-as-code export --app-id 123 --name customer-app
 ```
 
-完全に型付けされたフィールド定義を含む`apps/customer-app.schema.ts`が生成されます。
+以下のファイルが生成されます：
+- `apps/customer-app.schema.ts` - 完全に型付けされたフィールド定義
+- `apps/customer-app.record-schema.ts` - 型安全なレコードバリデーションスキーマ（新機能！）
 
 ### 3. アプリスキーマの定義
 
@@ -174,11 +177,17 @@ kintoneアプリ設定をTypeScriptにエクスポート：
 kintone-as-code export [options]
 
 オプション:
-  --app-id <id>    エクスポートするアプリID（必須）
-  --name <name>    スキーマファイル名（必須）
-  --env <env>      環境名
-  --output <dir>   出力ディレクトリ（デフォルト: "apps"）
+  --app-id <id>             エクスポートするアプリID（必須）
+  --name <name>             スキーマファイル名（必須）
+  --env <env>               環境名
+  --output <dir>            出力ディレクトリ（デフォルト: "apps"）
+  --with-record-schema      レコードスキーマファイルを生成（デフォルト: true）
+  --no-record-schema        レコードスキーマ生成をスキップ
 ```
+
+exportコマンドはデフォルトで2つのファイルを生成します：
+1. **フィールドスキーマ** (`{name}.schema.ts`) - フィールド定義と設定
+2. **レコードスキーマ** (`{name}.record-schema.ts`) - Effect Schemaによる型安全なレコードバリデーション
 
 ### apply
 
@@ -208,12 +217,59 @@ kintone-as-code create [options]
   --thread <id>    スレッドID（スペース内で作成する場合）
 ```
 
+## レコードスキーマの使用方法
+
+生成されたレコードスキーマはkintoneレコードの型安全なバリデーションを提供します：
+
+```typescript
+import { KintoneRestAPIClient } from '@kintone/rest-api-client';
+import { RecordSchema, validateRecord } from './apps/customer-app.record-schema';
+
+// クライアントの初期化
+const client = new KintoneRestAPIClient({
+  baseUrl: 'https://example.cybozu.com',
+  auth: { apiToken: 'YOUR_API_TOKEN' }
+});
+
+// レコードの取得とバリデーション
+const response = await client.record.getRecord({ 
+  app: 123, 
+  id: 1 
+});
+const validatedRecord = validateRecord(response.record);
+// validatedRecordは完全に型付けされています！
+
+// 複数レコードの取得と検証
+const recordsResponse = await client.record.getRecords({ 
+  app: 123,
+  query: 'limit 100'
+});
+const validatedRecords = recordsResponse.records.map(record => 
+  validateRecord(record)
+);
+```
+
+### カスタムバリデーションの活用
+
+```typescript
+import { CustomRecordSchema, validateRecordWithCustomRules } from './apps/customer-app.record-schema';
+
+// カスタムバリデーションルール付きで検証
+try {
+  const validatedRecord = validateRecordWithCustomRules(response.record);
+  // カスタムルールも含めて検証済みのレコード
+} catch (error) {
+  console.error('バリデーションエラー:', error);
+}
+```
+
 ## ベストプラクティス
 
 1. **バージョン管理**: アプリ設定の変更を追跡するため、スキーマファイルをコミット
 2. **環境変数**: 複数環境対応のため、アプリIDには環境変数を使用
 3. **型安全性**: TypeScriptの型チェックを活用して設定エラーを早期発見
 4. **コードレビュー**: 開発プロセスの一環としてスキーマ変更をレビュー
+5. **レコードバリデーション**: カスタマイズコードで生成されたレコードスキーマを使用して型安全なデータ処理を実現
 
 ## ライセンス
 

@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] - 2025-01-07
+
+### Added
+- Record schema generation feature for type-safe record validation in kintone customizations
+- New `--with-record-schema` option for export command (default: true)
+- Automatic generation of `{name}.record-schema.ts` files alongside field schemas
+- Integration with kintone-effect-schema's `convertFormFieldsToRecordSchema` function
+- Helper functions (`validateRecord`, `validateRecordWithCustomRules`) for record validation
+- Support for custom validation rules in generated record schemas
+- Type inference helpers for `AppRecord` and `AppRecordEncoded` types
+- Comprehensive documentation and usage examples for record schema feature
+
+### Changed
+- Export command now generates two files by default (field schema and record schema)
+- Updated README with record schema usage examples and best practices
+- Enhanced Japanese documentation with customization development examples
+
+## [0.1.1] - 2025-01-06
+
+### Fixed
+- Updated repository URLs and documentation links
+
 ## [0.1.0] - 2025-01-13
 
 ### Added
