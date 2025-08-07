@@ -38,7 +38,11 @@ export const generateRecordSchemaCode = (schemaName: string): string => {
   const baseName = schemaName.replace(/\.schema$/, '');
   
   return `import { Schema } from 'effect';
-import { convertFormFieldsToRecordSchema, createRecordSchemaFromForm } from 'kintone-effect-schema';
+import { 
+  convertFormFieldsToRecordSchema, 
+  createRecordSchemaFromForm,
+  decodeKintoneRecord 
+} from 'kintone-effect-schema';
 import { appFieldsConfig } from './${baseName}.schema.js';
 
 // Generate record schema from form field definitions
@@ -47,8 +51,18 @@ const recordSchemas = convertFormFieldsToRecordSchema(appFieldsConfig);
 // Export the record schema for type-safe record validation
 export const RecordSchema = Schema.Struct(recordSchemas);
 
-// Helper function for record validation
-export const validateRecord = Schema.decodeUnknownSync(RecordSchema);
+// Helper function for record validation with normalization
+// Use this for JavaScript API responses (kintone customization)
+export const validateRecord = (record: unknown) => {
+  // First normalize the record (handle undefined, empty strings, etc.)
+  const normalizedRecord = decodeKintoneRecord(record);
+  // Then validate with schema
+  return Schema.decodeUnknownSync(RecordSchema)(normalizedRecord);
+};
+
+// Strict validation without normalization
+// Use this for REST API responses (already normalized)
+export const validateRecordStrict = Schema.decodeUnknownSync(RecordSchema);
 
 // Optional: Export with custom validations
 // You can customize this by adding validation rules
@@ -61,8 +75,11 @@ export const CustomRecordSchema = createRecordSchemaFromForm(appFieldsConfig, {
   // )
 });
 
-// Helper function for custom validation
-export const validateRecordWithCustomRules = Schema.decodeUnknownSync(CustomRecordSchema);
+// Helper function for custom validation with normalization
+export const validateRecordWithCustomRules = (record: unknown) => {
+  const normalizedRecord = decodeKintoneRecord(record);
+  return Schema.decodeUnknownSync(CustomRecordSchema)(normalizedRecord);
+};
 
 // Type inference helpers
 export type AppRecord = Schema.Schema.Type<typeof RecordSchema>;

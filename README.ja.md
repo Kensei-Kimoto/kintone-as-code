@@ -219,11 +219,13 @@ kintone-as-code create [options]
 
 ## レコードスキーマの使用方法
 
-生成されたレコードスキーマはkintoneレコードの型安全なバリデーションを提供します：
+生成されたレコードスキーマはkintoneレコードの型安全なバリデーションと自動正規化を提供します：
+
+### REST API利用時（kintone-rest-api-client）
 
 ```typescript
 import { KintoneRestAPIClient } from '@kintone/rest-api-client';
-import { RecordSchema, validateRecord } from './apps/customer-app.record-schema';
+import { validateRecordStrict } from './apps/customer-app.record-schema';
 
 // クライアントの初期化
 const client = new KintoneRestAPIClient({
@@ -231,37 +233,61 @@ const client = new KintoneRestAPIClient({
   auth: { apiToken: 'YOUR_API_TOKEN' }
 });
 
-// レコードの取得とバリデーション
+// レコードの取得とバリデーション（REST APIは正規化済みデータを返す）
 const response = await client.record.getRecord({ 
   app: 123, 
   id: 1 
 });
-const validatedRecord = validateRecord(response.record);
+const validatedRecord = validateRecordStrict(response.record);
 // validatedRecordは完全に型付けされています！
 
-// 複数レコードの取得と検証
+// 複数レコードの検証
 const recordsResponse = await client.record.getRecords({ 
   app: 123,
   query: 'limit 100'
 });
 const validatedRecords = recordsResponse.records.map(record => 
-  validateRecord(record)
+  validateRecordStrict(record)
 );
+```
+
+### JavaScript API利用時（カスタマイズ）
+
+```typescript
+import { validateRecord } from './apps/customer-app.record-schema';
+
+kintone.events.on('app.record.detail.show', (event) => {
+  // JavaScript APIはundefinedや空文字列を返す可能性がある
+  // validateRecordは自動的にこれらの値を正規化
+  const validatedRecord = validateRecord(event.record);
+  // undefined → '', 数値の空文字列 → null など
+  
+  // 型安全にアクセス
+  console.log(validatedRecord.会社名.value);
+  return event;
+});
 ```
 
 ### カスタムバリデーションの活用
 
 ```typescript
-import { CustomRecordSchema, validateRecordWithCustomRules } from './apps/customer-app.record-schema';
+import { validateRecordWithCustomRules } from './apps/customer-app.record-schema';
 
-// カスタムバリデーションルール付きで検証
+// カスタムルールは生成されたファイルで定義
+// JavaScript API用の自動正規化も含まれる
 try {
-  const validatedRecord = validateRecordWithCustomRules(response.record);
+  const validatedRecord = validateRecordWithCustomRules(record);
   // カスタムルールも含めて検証済みのレコード
 } catch (error) {
   console.error('バリデーションエラー:', error);
 }
 ```
+
+### 使い分けのポイント
+
+- **validateRecordStrict**: REST API用（正規化不要）
+- **validateRecord**: JavaScript API用（自動正規化あり）
+- **validateRecordWithCustomRules**: カスタムルール + 自動正規化
 
 ## ベストプラクティス
 

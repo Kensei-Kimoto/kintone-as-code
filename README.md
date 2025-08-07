@@ -252,11 +252,13 @@ Features:
 
 ## Record Schema Usage
 
-The generated record schema provides type-safe validation for kintone records:
+The generated record schema provides type-safe validation for kintone records with automatic normalization:
+
+### REST API Usage (kintone-rest-api-client)
 
 ```typescript
 import { KintoneRestAPIClient } from '@kintone/rest-api-client';
-import { RecordSchema, validateRecord } from './apps/customer-app.record-schema';
+import { validateRecordStrict } from './apps/customer-app.record-schema';
 
 // Initialize client
 const client = new KintoneRestAPIClient({
@@ -264,17 +266,37 @@ const client = new KintoneRestAPIClient({
   auth: { apiToken: 'YOUR_API_TOKEN' }
 });
 
-// Fetch and validate record
+// Fetch and validate record (REST API returns normalized data)
 const response = await client.record.getRecord({ 
   app: 123, 
   id: 1 
 });
-const validatedRecord = validateRecord(response.record);
+const validatedRecord = validateRecordStrict(response.record);
 // validatedRecord is now fully typed!
+```
 
-// Custom validation rules
-import { CustomRecordSchema } from './apps/customer-app.record-schema';
-// Add your custom validation logic in the generated file
+### JavaScript API Usage (Customization)
+
+```typescript
+import { validateRecord } from './apps/customer-app.record-schema';
+
+kintone.events.on('app.record.detail.show', (event) => {
+  // JavaScript API may return undefined or empty strings
+  // validateRecord automatically normalizes these values
+  const validatedRecord = validateRecord(event.record);
+  // undefined → '', empty strings → null for numbers, etc.
+  return event;
+});
+```
+
+### Custom Validation Rules
+
+```typescript
+import { validateRecordWithCustomRules } from './apps/customer-app.record-schema';
+
+// Custom rules are defined in the generated file
+// Includes automatic normalization for JavaScript API
+const validatedRecord = validateRecordWithCustomRules(record);
 ```
 
 ## Best Practices

@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.1] - 2025-01-07
+
+### Added
+- Automatic empty value normalization using `decodeKintoneRecord` from kintone-effect-schema
+- Separate validation functions for different use cases:
+  - `validateRecord` - For JavaScript API with automatic normalization
+  - `validateRecordStrict` - For REST API without normalization
+  - `validateRecordWithCustomRules` - Custom validation with normalization
+
+### Changed
+- Improved generated record schema to handle both JavaScript API and REST API responses
+- Updated documentation with clear usage examples for different scenarios
+
+### Fixed
+- JavaScript API's undefined and empty string values are now properly normalized
+
 ## [0.2.0] - 2025-01-07
 
 ### Added
