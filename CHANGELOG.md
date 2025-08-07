@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.2] - 2025-01-07
+
+### Changed
+- Simplified validation API - now all APIs use the same `validateRecord` function with normalization
+- Removed `validateRecordStrict` as REST API also needs normalization for edge cases
+- Both REST API and JavaScript API now use the same normalization logic
+
+### Fixed
+- REST API's inconsistent empty values (e.g., empty strings in number fields) are now properly normalized to null
+
 ## [0.2.1] - 2025-01-07
 
 ### Added

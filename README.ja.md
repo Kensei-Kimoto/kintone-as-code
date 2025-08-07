@@ -221,11 +221,9 @@ kintone-as-code create [options]
 
 生成されたレコードスキーマはkintoneレコードの型安全なバリデーションと自動正規化を提供します：
 
-### REST API利用時（kintone-rest-api-client）
-
 ```typescript
 import { KintoneRestAPIClient } from '@kintone/rest-api-client';
-import { validateRecordStrict } from './apps/customer-app.record-schema';
+import { validateRecord } from './apps/customer-app.record-schema';
 
 // クライアントの初期化
 const client = new KintoneRestAPIClient({
@@ -233,13 +231,14 @@ const client = new KintoneRestAPIClient({
   auth: { apiToken: 'YOUR_API_TOKEN' }
 });
 
-// レコードの取得とバリデーション（REST APIは正規化済みデータを返す）
+// レコードの取得とバリデーション（自動正規化付き）
 const response = await client.record.getRecord({ 
   app: 123, 
   id: 1 
 });
-const validatedRecord = validateRecordStrict(response.record);
-// validatedRecordは完全に型付けされています！
+const validatedRecord = validateRecord(response.record);
+// validatedRecordは完全に型付け＆正規化されています！
+// 数値フィールドの空文字列 → null、undefined → '' など
 
 // 複数レコードの検証
 const recordsResponse = await client.record.getRecords({ 
@@ -247,7 +246,7 @@ const recordsResponse = await client.record.getRecords({
   query: 'limit 100'
 });
 const validatedRecords = recordsResponse.records.map(record => 
-  validateRecordStrict(record)
+  validateRecord(record)
 );
 ```
 
@@ -257,10 +256,9 @@ const validatedRecords = recordsResponse.records.map(record =>
 import { validateRecord } from './apps/customer-app.record-schema';
 
 kintone.events.on('app.record.detail.show', (event) => {
-  // JavaScript APIはundefinedや空文字列を返す可能性がある
-  // validateRecordは自動的にこれらの値を正規化
+  // 同じ関数でJavaScript APIも処理可能
   const validatedRecord = validateRecord(event.record);
-  // undefined → '', 数値の空文字列 → null など
+  // すべての空値の不整合を自動的に処理
   
   // 型安全にアクセス
   console.log(validatedRecord.会社名.value);
@@ -274,7 +272,7 @@ kintone.events.on('app.record.detail.show', (event) => {
 import { validateRecordWithCustomRules } from './apps/customer-app.record-schema';
 
 // カスタムルールは生成されたファイルで定義
-// JavaScript API用の自動正規化も含まれる
+// 自動正規化も含まれる
 try {
   const validatedRecord = validateRecordWithCustomRules(record);
   // カスタムルールも含めて検証済みのレコード
@@ -283,11 +281,11 @@ try {
 }
 ```
 
-### 使い分けのポイント
+### ポイント
 
-- **validateRecordStrict**: REST API用（正規化不要）
-- **validateRecord**: JavaScript API用（自動正規化あり）
+- **validateRecord**: REST API・JavaScript API両方で使用可能（自動正規化あり）
 - **validateRecordWithCustomRules**: カスタムルール + 自動正規化
+- どちらのAPIでも同じ関数で安全に処理できます！
 
 ## ベストプラクティス
 

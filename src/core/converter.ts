@@ -52,17 +52,13 @@ const recordSchemas = convertFormFieldsToRecordSchema(appFieldsConfig);
 export const RecordSchema = Schema.Struct(recordSchemas);
 
 // Helper function for record validation with normalization
-// Use this for JavaScript API responses (kintone customization)
+// Normalizes empty values for both REST API and JavaScript API
 export const validateRecord = (record: unknown) => {
   // First normalize the record (handle undefined, empty strings, etc.)
   const normalizedRecord = decodeKintoneRecord(record);
   // Then validate with schema
   return Schema.decodeUnknownSync(RecordSchema)(normalizedRecord);
 };
-
-// Strict validation without normalization
-// Use this for REST API responses (already normalized)
-export const validateRecordStrict = Schema.decodeUnknownSync(RecordSchema);
 
 // Optional: Export with custom validations
 // You can customize this by adding validation rules

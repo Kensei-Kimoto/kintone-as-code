@@ -254,11 +254,9 @@ Features:
 
 The generated record schema provides type-safe validation for kintone records with automatic normalization:
 
-### REST API Usage (kintone-rest-api-client)
-
 ```typescript
 import { KintoneRestAPIClient } from '@kintone/rest-api-client';
-import { validateRecordStrict } from './apps/customer-app.record-schema';
+import { validateRecord } from './apps/customer-app.record-schema';
 
 // Initialize client
 const client = new KintoneRestAPIClient({
@@ -266,13 +264,14 @@ const client = new KintoneRestAPIClient({
   auth: { apiToken: 'YOUR_API_TOKEN' }
 });
 
-// Fetch and validate record (REST API returns normalized data)
+// Fetch and validate record with automatic normalization
 const response = await client.record.getRecord({ 
   app: 123, 
   id: 1 
 });
-const validatedRecord = validateRecordStrict(response.record);
-// validatedRecord is now fully typed!
+const validatedRecord = validateRecord(response.record);
+// validatedRecord is now fully typed and normalized!
+// Empty strings in number fields → null, undefined → '', etc.
 ```
 
 ### JavaScript API Usage (Customization)
@@ -281,10 +280,9 @@ const validatedRecord = validateRecordStrict(response.record);
 import { validateRecord } from './apps/customer-app.record-schema';
 
 kintone.events.on('app.record.detail.show', (event) => {
-  // JavaScript API may return undefined or empty strings
-  // validateRecord automatically normalizes these values
+  // Same function works for JavaScript API
   const validatedRecord = validateRecord(event.record);
-  // undefined → '', empty strings → null for numbers, etc.
+  // Handles all empty value inconsistencies automatically
   return event;
 });
 ```
@@ -295,7 +293,7 @@ kintone.events.on('app.record.detail.show', (event) => {
 import { validateRecordWithCustomRules } from './apps/customer-app.record-schema';
 
 // Custom rules are defined in the generated file
-// Includes automatic normalization for JavaScript API
+// Also includes automatic normalization
 const validatedRecord = validateRecordWithCustomRules(record);
 ```
 
