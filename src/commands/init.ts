@@ -81,15 +81,46 @@ export const init = async ({ force }: { force?: boolean | undefined }) => {
       // Set type to module if not already set
       if (packageJson.type !== 'module') {
         packageJson.type = 'module';
-        await fs.writeFile(packageJsonPath, JSON.stringify(packageJson, null, 2) + '\n');
-        console.log('Updated package.json to use ES modules');
       }
+      
+      // Add necessary dependencies if not present
+      if (!packageJson.dependencies) {
+        packageJson.dependencies = {};
+      }
+      
+      // Add required dependencies for schemas to work
+      if (!packageJson.dependencies['kintone-effect-schema']) {
+        packageJson.dependencies['kintone-effect-schema'] = '^0.7.1';
+      }
+      if (!packageJson.dependencies['dotenv']) {
+        packageJson.dependencies['dotenv'] = '^16.3.1';
+      }
+      if (!packageJson.dependencies['effect']) {
+        packageJson.dependencies['effect'] = '^3.0.0';
+      }
+      
+      // Add helpful scripts
+      if (!packageJson.scripts) {
+        packageJson.scripts = {};
+      }
+      if (!packageJson.scripts['export']) {
+        packageJson.scripts['export'] = 'kintone-as-code export';
+      }
+      if (!packageJson.scripts['apply']) {
+        packageJson.scripts['apply'] = 'kintone-as-code apply';
+      }
+      if (!packageJson.scripts['create']) {
+        packageJson.scripts['create'] = 'kintone-as-code create';
+      }
+      
+      await fs.writeFile(packageJsonPath, JSON.stringify(packageJson, null, 2) + '\n');
+      console.log('Updated package.json with ES modules and dependencies');
     } catch (error) {
-      console.warn('Could not update package.json. Please add "type": "module" manually.');
+      console.warn('Could not update package.json. Please check the file manually.');
     }
   } else {
-    // Create a minimal package.json if it doesn't exist
-    const minimalPackageJson = {
+    // Create a complete package.json if it doesn't exist
+    const completePackageJson = {
       name: path.basename(process.cwd()),
       version: '1.0.0',
       type: 'module',
@@ -98,10 +129,15 @@ export const init = async ({ force }: { force?: boolean | undefined }) => {
         'export': 'kintone-as-code export',
         'apply': 'kintone-as-code apply',
         'create': 'kintone-as-code create'
+      },
+      dependencies: {
+        'kintone-effect-schema': '^0.7.1',
+        'dotenv': '^16.3.1',
+        'effect': '^3.0.0'
       }
     };
-    await fs.writeFile(packageJsonPath, JSON.stringify(minimalPackageJson, null, 2) + '\n');
-    console.log('Created package.json with ES module support');
+    await fs.writeFile(packageJsonPath, JSON.stringify(completePackageJson, null, 2) + '\n');
+    console.log('Created package.json with ES modules and dependencies');
   }
 
   console.log('kintone-as-code initialized successfully!');
@@ -110,7 +146,7 @@ export const init = async ({ force }: { force?: boolean | undefined }) => {
   console.log(`- .env.example`);
   console.log(`- apps/`);
   console.log('\nNext steps:');
-  console.log('1. Install dotenv: npm install dotenv');
+  console.log('1. Run: npm install');
   console.log('2. Copy .env.example to .env and update with your credentials');
   console.log('3. Start managing your Kintone apps as code!');
 };
