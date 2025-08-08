@@ -5,21 +5,22 @@ function hasErrorsProperty(e: unknown): e is { errors: unknown } {
   return typeof e === 'object' && e !== null && 'errors' in e;
 }
 
-export const convertKintoneFieldsToSchema = (rawFields: unknown): string => {
+export const convertKintoneFieldsToSchema = (rawFields: unknown, appConstantName?: string, appName?: string): string => {
   try {
     const parsed = Schema.decodeUnknownSync(FormFieldsSchema)(rawFields);
 
     // Generate TypeScript code using official generator (0.7.1+ preserves SUBTABLE labels)
     const schemaCode = fieldsConfigToTypeScriptCode(parsed.properties as any);
 
-    // Import helper functions from local utils
-    return `import { defineAppSchema, getAppId } from '../utils/helpers.js';
+    // Import helper functions and app IDs from local utils
+    return `import { defineAppSchema } from '../utils/helpers.js';
+import { APP_IDS } from '../utils/app-ids.js';
 ${schemaCode}
 
 // Export app schema configuration
 export default defineAppSchema({
-  appId: getAppId('KINTONE_APP_ID'), // Please replace with your env variable
-  name: 'Exported App',
+  appId: APP_IDS.${appConstantName || 'MY_APP'},
+  name: '${appName || 'Exported App'}',
   description: 'This schema was exported from kintone.',
   
   // Use the generated fields configuration

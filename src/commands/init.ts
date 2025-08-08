@@ -42,10 +42,42 @@ KINTONE_PASSWORD=your-password
 # KINTONE_DEV_PASSWORD=dev-password
 # or use API token
 # KINTONE_DEV_API_TOKEN=your-dev-api-token
+`;
 
-# App IDs (for use in your schemas)
-KINTONE_CUSTOMER_APP_ID=123
-KINTONE_PRODUCT_APP_ID=456
+const gitignoreTemplate = `# Dependencies
+node_modules/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Build output
+dist/
+build/
+*.js
+*.js.map
+*.d.ts
+!kintone-as-code.config.js
+
+# App IDs (contains actual app IDs)
+utils/app-ids.ts
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
 `;
 
 const helpersTemplate = `// Helper functions for kintone-as-code schemas
@@ -61,22 +93,12 @@ export function defineAppSchema<T extends {
 }>(schema: T): T {
   return schema;
 }
-
-/**
- * Helper function to get app ID from environment variable
- */
-export function getAppId(envVarName: string): string {
-  const appId = process.env[envVarName];
-  if (!appId) {
-    throw new Error(\`Environment variable \${envVarName} is not set\`);
-  }
-  return appId;
-}
 `;
 
 export const init = async ({ force }: { force?: boolean | undefined }) => {
   const configPath = path.join(process.cwd(), 'kintone-as-code.config.js');
   const envExamplePath = path.join(process.cwd(), '.env.example');
+  const gitignorePath = path.join(process.cwd(), '.gitignore');
   const appsPath = path.join(process.cwd(), 'apps');
   const utilsPath = path.join(process.cwd(), 'utils');
   const helpersPath = path.join(utilsPath, 'helpers.ts');
@@ -98,6 +120,7 @@ export const init = async ({ force }: { force?: boolean | undefined }) => {
 
   await fs.writeFile(configPath, configTemplate.trim());
   await fs.writeFile(envExamplePath, envExampleTemplate.trim());
+  await fs.writeFile(gitignorePath, gitignoreTemplate.trim());
   await fs.mkdir(appsPath, { recursive: true });
   await fs.mkdir(utilsPath, { recursive: true });
   await fs.writeFile(helpersPath, helpersTemplate.trim());
@@ -174,6 +197,7 @@ export const init = async ({ force }: { force?: boolean | undefined }) => {
   console.log('Created:');
   console.log(`- kintone-as-code.config.js`);
   console.log(`- .env.example`);
+  console.log(`- .gitignore`);
   console.log(`- apps/`);
   console.log(`- utils/helpers.ts`);
   console.log('\nNext steps:');
