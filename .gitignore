@@ -64,4 +64,4 @@ temp/
 # Debug and test files specific to this project
 debug-*.js
 check-*.js
-apps/test-*.schema.ts
+apps/test-*.schema.tstest-npm-package/
