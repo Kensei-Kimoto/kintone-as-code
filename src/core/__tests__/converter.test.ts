@@ -82,6 +82,8 @@ describe('convertKintoneFieldsToSchema', () => {
         subtable: {
           type: 'SUBTABLE',
           code: 'subtable',
+          label: 'Subtable',
+          noLabel: false,
           fields: {
             subfield1: {
               type: 'SINGLE_LINE_TEXT',
