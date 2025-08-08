@@ -65,3 +65,4 @@ temp/
 debug-*.js
 check-*.js
 apps/test-*.schema.tstest-npm-package/
+test-v*/

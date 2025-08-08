@@ -52,6 +52,7 @@ export const init = async ({ force }: { force?: boolean | undefined }) => {
   const configPath = path.join(process.cwd(), 'kintone-as-code.config.js');
   const envExamplePath = path.join(process.cwd(), '.env.example');
   const appsPath = path.join(process.cwd(), 'apps');
+  const packageJsonPath = path.join(process.cwd(), 'package.json');
 
   const fileExists = async (filePath: string) => {
     try {
@@ -70,6 +71,38 @@ export const init = async ({ force }: { force?: boolean | undefined }) => {
   await fs.writeFile(configPath, configTemplate.trim());
   await fs.writeFile(envExamplePath, envExampleTemplate.trim());
   await fs.mkdir(appsPath, { recursive: true });
+
+  // Update package.json to use ES modules if it exists
+  if (await fileExists(packageJsonPath)) {
+    try {
+      const packageJsonContent = await fs.readFile(packageJsonPath, 'utf-8');
+      const packageJson = JSON.parse(packageJsonContent);
+      
+      // Set type to module if not already set
+      if (packageJson.type !== 'module') {
+        packageJson.type = 'module';
+        await fs.writeFile(packageJsonPath, JSON.stringify(packageJson, null, 2) + '\n');
+        console.log('Updated package.json to use ES modules');
+      }
+    } catch (error) {
+      console.warn('Could not update package.json. Please add "type": "module" manually.');
+    }
+  } else {
+    // Create a minimal package.json if it doesn't exist
+    const minimalPackageJson = {
+      name: path.basename(process.cwd()),
+      version: '1.0.0',
+      type: 'module',
+      description: 'Kintone application managed as code',
+      scripts: {
+        'export': 'kintone-as-code export',
+        'apply': 'kintone-as-code apply',
+        'create': 'kintone-as-code create'
+      }
+    };
+    await fs.writeFile(packageJsonPath, JSON.stringify(minimalPackageJson, null, 2) + '\n');
+    console.log('Created package.json with ES module support');
+  }
 
   console.log('kintone-as-code initialized successfully!');
   console.log('Created:');
