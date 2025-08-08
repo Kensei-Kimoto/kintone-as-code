@@ -1,6 +1,6 @@
 {
   "name": "kintone-as-code",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "A CLI tool for managing kintone applications as code with type-safe TypeScript schemas",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
