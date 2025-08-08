@@ -1,5 +1,5 @@
 import { Schema } from 'effect';
-import { GetFormFieldsResponseSchema as FormFieldsSchema, fieldsConfigToTypeScriptCode } from 'kintone-effect-schema';
+import { GetFormFieldsResponseSchema as FormFieldsSchema, formConfigToEffectModuleCode } from 'kintone-effect-schema';
 
 function hasErrorsProperty(e: unknown): e is { errors: unknown } {
   return typeof e === 'object' && e !== null && 'errors' in e;
@@ -9,22 +9,25 @@ export const convertKintoneFieldsToSchema = (rawFields: unknown, appConstantName
   try {
     const parsed = Schema.decodeUnknownSync(FormFieldsSchema)(rawFields);
 
-    // Generate TypeScript code using official generator (0.7.1+ preserves SUBTABLE labels)
-    const schemaCode = fieldsConfigToTypeScriptCode(parsed.properties as any);
+    // 新API: フォーム定義(値)と対応するEffect Schema(型)を含むモジュールコードを生成
+    const moduleCode = formConfigToEffectModuleCode(parsed.properties as any, {
+      importSource: 'kintone-effect-schema',
+      valueVarName: 'formProperties',
+      schemaVarName: 'FormPropertiesSchema'
+    });
 
-    // Import helper functions and app IDs from local utils
-    return `import { defineAppSchema } from '../utils/helpers.js';
+    // 生成コードにアプリ用メタ情報のexportを付与
+    return `${moduleCode}
+
+import { defineAppSchema } from '../utils/helpers.js';
 import { APP_IDS } from '../utils/app-ids.js';
-${schemaCode}
 
-// Export app schema configuration
 export default defineAppSchema({
   appId: APP_IDS.${appConstantName || 'MY_APP'},
   name: '${appName || 'Exported App'}',
   description: 'This schema was exported from kintone.',
-  
-  // Use the generated fields configuration
-  fieldsConfig: appFieldsConfig
+  // 明確に「値」を参照（型と値の混同を避ける）
+  fieldsConfig: formProperties
 });`;
   } catch (error) {
     console.error('Failed to parse kintone fields:', error);
@@ -45,10 +48,10 @@ import {
   createRecordSchemaFromForm,
   decodeKintoneRecord 
 } from 'kintone-effect-schema';
-import { appFieldsConfig } from './${baseName}.schema.js';
+import { formProperties } from './${baseName}.schema.js';
 
 // Generate record schema from form field definitions
-const recordSchemas = convertFormFieldsToRecordSchema(appFieldsConfig);
+const recordSchemas = convertFormFieldsToRecordSchema(formProperties);
 
 // Export the record schema for type-safe record validation
 export const RecordSchema = Schema.Struct(recordSchemas);

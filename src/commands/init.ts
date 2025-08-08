@@ -143,7 +143,7 @@ export const init = async ({ force }: { force?: boolean | undefined }) => {
       
       // Add required dependencies for schemas to work
       if (!packageJson.dependencies['kintone-effect-schema']) {
-        packageJson.dependencies['kintone-effect-schema'] = '^0.7.1';
+        packageJson.dependencies['kintone-effect-schema'] = '^0.8.0';
       }
       if (!packageJson.dependencies['dotenv']) {
         packageJson.dependencies['dotenv'] = '^16.3.1';
@@ -184,7 +184,7 @@ export const init = async ({ force }: { force?: boolean | undefined }) => {
         'create': 'kintone-as-code create'
       },
       dependencies: {
-        'kintone-effect-schema': '^0.7.1',
+        'kintone-effect-schema': '^0.8.0',
         'dotenv': '^16.3.1',
         'effect': '^3.0.0'
       }

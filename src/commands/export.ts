@@ -98,6 +98,8 @@ export const exportCommand = async (options: ExportOptions) => {
       await fs.writeFile(recordSchemaPath, recordSchemaContent);
       console.log(`Successfully exported record schema to ${recordSchemaPath}`);
     }
+
+    // Note: Form schema (Effect-TS) generation is not performed here
   } catch (error) {
     console.error(`Error during export: ${error instanceof Error ? error.message : String(error)}`);
   }

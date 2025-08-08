@@ -1,6 +1,6 @@
 {
   "name": "kintone-as-code",
-  "version": "0.3.6",
+  "version": "0.4.0",
   "description": "A CLI tool for managing kintone applications as code with type-safe TypeScript schemas",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -40,7 +40,7 @@
     "dotenv": "^16.3.1",
     "effect": "^3.0.0",
     "esbuild": "^0.19.0",
-    "kintone-effect-schema": "^0.7.1",
+    "kintone-effect-schema": "^0.8.0",
     "ora": "^6.3.0",
     "yargs": "^18.0.0"
   },

@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2025-08-08
+
+### Changed
+- Migrate to `kintone-effect-schema` v0.8.0 and new codegen API
+- Replace legacy codegen with `formConfigToEffectModuleCode` (value/type separation)
+- Generated schema exports now use `formProperties` (value) and `FormPropertiesSchema` (type)
+- Record schema generation now imports from `formProperties` instead of `appFieldsConfig`
+- Tests and integration flow updated accordingly
+
+### Removed
+- Legacy `appFieldsConfig` style code generation and reliance on removed APIs (`fieldsConfigToTypeScriptCode`)
+
+### Breaking Changes
+- Generated files structure changed: explicit separation of value and schema; consumers must reference `formProperties` for field values
+- Any downstream code expecting `appFieldsConfig` must switch to `formProperties`
+
 ## [0.2.2] - 2025-01-07
 
 ### Changed
