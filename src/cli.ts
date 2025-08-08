@@ -29,7 +29,7 @@ type ExportArgs = {
   'with-record-schema': boolean;
 };
 type ApplyArgs = {
-  'app-id': string;
+  'app-id'?: string;
   schema: string;
   env?: string;
 };
@@ -101,8 +101,8 @@ yargs(hideBin(process.argv))
     {
       'app-id': {
         type: 'string',
-        demandOption: true,
-        description: 'App ID to apply to',
+        demandOption: false,
+        description: 'App ID to apply to (optional, uses schema appId if not provided)',
       },
       schema: {
         type: 'string',
@@ -116,11 +116,14 @@ yargs(hideBin(process.argv))
     },
     (argv: any) => {
       const a = argv as ApplyArgs;
-      applyCommand({
-        appId: a['app-id'],
+      const options: Parameters<typeof applyCommand>[0] = {
         schema: a.schema,
         env: a.env,
-      });
+      };
+      if (a['app-id']) {
+        options.appId = a['app-id'];
+      }
+      applyCommand(options);
     }
   )
   .command(

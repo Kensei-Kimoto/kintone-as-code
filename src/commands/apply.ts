@@ -25,13 +25,46 @@ type NonUpdatableFieldType = typeof NON_UPDATABLE_FIELD_TYPES[number];
 // type definitions moved to src/types.ts
 
 interface ApplyOptions {
-  appId: string;
+  appId?: string;
   schema: string;
   env: string | undefined;
 }
 
 export const applyCommand = async (options: ApplyOptions) => {
   try {
+    // Load schema file first to get appId if not provided
+    console.log(chalk.blue(`Loading schema from ${options.schema}...`));
+    const schemaPath = path.resolve(process.cwd(), options.schema);
+    const schema = await loadSchema(schemaPath);
+
+    // Determine the app ID to use
+    let appId: string;
+    if (options.appId) {
+      // Use the explicitly provided app ID
+      appId = options.appId;
+      console.log(chalk.blue(`Using app ID from command line: ${appId}`));
+    } else if (schema.appId) {
+      // Use the app ID from the schema
+      appId = String(schema.appId);
+      console.log(chalk.blue(`Using app ID from schema: ${appId}`));
+    } else {
+      // No app ID available
+      console.error(chalk.red('Error: No app ID specified.'));
+      console.error(chalk.yellow('Please either:'));
+      console.error(chalk.yellow('  1. Provide --app-id parameter'));
+      console.error(chalk.yellow('  2. Ensure your schema has an appId field'));
+      console.error(chalk.yellow('  3. If using an older schema, check that APP_IDS is properly imported from utils/app-ids.ts'));
+      process.exit(1);
+    }
+
+    // Validate app ID
+    if (!appId || appId === '0' || appId === 'undefined') {
+      console.error(chalk.red(`Error: Invalid app ID: ${appId}`));
+      console.error(chalk.yellow('The schema may be referencing a missing APP_IDS constant.'));
+      console.error(chalk.yellow('Check that utils/app-ids.ts exists and contains the correct app ID.'));
+      process.exit(1);
+    }
+
     console.log(chalk.blue('Loading configuration...'));
     const config = await loadConfig();
     const envName = options.env || config.default;
@@ -45,15 +78,10 @@ export const applyCommand = async (options: ApplyOptions) => {
     // Initialize kintone client
     const client = getKintoneClient(envConfig.auth);
 
-    // Load schema file
-    console.log(chalk.blue(`Loading schema from ${options.schema}...`));
-    const schemaPath = path.resolve(process.cwd(), options.schema);
-    const schema = await loadSchema(schemaPath);
-
     // Get current form fields
     console.log(chalk.blue('Fetching current app configuration...'));
     const currentForm = await client.app.getFormFields({
-      app: options.appId,
+      app: appId,
     });
 
     // Prepare the update payload
@@ -62,7 +90,7 @@ export const applyCommand = async (options: ApplyOptions) => {
       app: string;
       properties: Record<string, FieldUpdatePayload>;
     } = {
-      app: options.appId,
+      app: appId,
       properties: {}
     };
 
@@ -101,7 +129,7 @@ export const applyCommand = async (options: ApplyOptions) => {
       
       try {
         await addFormFieldsLoose(client, {
-          app: options.appId,
+          app: appId,
           properties: newFieldsForAPI,
         });
         console.log(chalk.green(`✓ Successfully added ${Object.keys(newFields).length} new field(s)`));
@@ -470,7 +498,7 @@ export const applyCommand = async (options: ApplyOptions) => {
     if (needsDeploy) {
       console.log(chalk.blue('\nDeploying app...'));
       try {
-        await client.app.deployApp({ apps: [{ app: options.appId }] });
+        await client.app.deployApp({ apps: [{ app: appId }] });
         console.log(chalk.green('✓ App deployed successfully!'));
       } catch (error) {
         console.error(chalk.red('Failed to deploy app:'));
