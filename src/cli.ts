@@ -7,122 +7,142 @@ import { exportCommand } from './commands/export.js';
 import { applyCommand } from './commands/apply.js';
 import { createCommand } from './commands/create.js';
 
+type ExportArgs = {
+  'app-id': string;
+  name: string;
+  env?: string;
+  output?: string;
+  'with-record-schema': boolean;
+};
+type ApplyArgs = {
+  'app-id': string;
+  schema: string;
+  env?: string;
+};
+type CreateArgs = {
+  schema: string;
+  name?: string;
+  env?: string;
+  space?: string;
+  thread?: string;
+};
+
 yargs(hideBin(process.argv))
   .command(
     'init',
     'Initialize kintone-as-code project',
-    (yargs) => {
-      return yargs.option('force', {
+    {
+      force: {
         alias: 'f',
         type: 'boolean',
         description: 'Force overwrite existing files',
-      });
+      },
     },
-    (argv) => {
-      init({ force: argv.force });
+    (argv: any) => {
+      init({ force: argv.force as boolean | undefined });
     }
   )
   .command(
     'export',
     'Export kintone app settings',
-    (yargs) => {
-      return yargs
-        .option('app-id', {
-          type: 'string',
-          demandOption: true,
-          description: 'App ID to export',
-        })
-        .option('name', {
-          type: 'string',
-          demandOption: true,
-          description: 'Schema file name',
-        })
-        .option('env', {
-          type: 'string',
-          description: 'Environment name',
-        })
-        .option('output', {
-          type: 'string',
-          description: 'Output directory',
-        })
-        .option('with-record-schema', {
-          type: 'boolean',
-          default: true,
-          description: 'Generate record schema file (default: true)',
-        });
+    {
+      'app-id': {
+        type: 'string',
+        demandOption: true,
+        description: 'App ID to export',
+      },
+      name: {
+        type: 'string',
+        demandOption: true,
+        description: 'Schema file name',
+      },
+      env: {
+        type: 'string',
+        description: 'Environment name',
+      },
+      output: {
+        type: 'string',
+        description: 'Output directory',
+      },
+      'with-record-schema': {
+        type: 'boolean',
+        default: true,
+        description: 'Generate record schema file (default: true)',
+      },
     },
-    (argv) => {
+    (argv: any) => {
+      const a = argv as ExportArgs;
       exportCommand({
-        appId: argv['app-id'],
-        name: argv.name,
-        env: argv.env,
-        output: argv.output,
-        withRecordSchema: argv['with-record-schema'],
+        appId: a['app-id'],
+        name: a.name,
+        env: a.env,
+        output: a.output,
+        withRecordSchema: a['with-record-schema'],
       });
     }
   )
   .command(
     'apply',
     'Apply schema to kintone app',
-    (yargs) => {
-      return yargs
-        .option('app-id', {
-          type: 'string',
-          demandOption: true,
-          description: 'App ID to apply to',
-        })
-        .option('schema', {
-          type: 'string',
-          demandOption: true,
-          description: 'Schema file path',
-        })
-        .option('env', {
-          type: 'string',
-          description: 'Environment name',
-        });
+    {
+      'app-id': {
+        type: 'string',
+        demandOption: true,
+        description: 'App ID to apply to',
+      },
+      schema: {
+        type: 'string',
+        demandOption: true,
+        description: 'Schema file path',
+      },
+      env: {
+        type: 'string',
+        description: 'Environment name',
+      },
     },
-    (argv) => {
+    (argv: any) => {
+      const a = argv as ApplyArgs;
       applyCommand({
-        appId: argv['app-id'],
-        schema: argv.schema,
-        env: argv.env,
+        appId: a['app-id'],
+        schema: a.schema,
+        env: a.env,
       });
     }
   )
   .command(
     'create',
     'Create a new kintone app from schema',
-    (yargs) => {
-      return yargs
-        .option('schema', {
-          type: 'string',
-          demandOption: true,
-          description: 'Schema file path',
-        })
-        .option('name', {
-          type: 'string',
-          description: 'App name (overrides schema name)',
-        })
-        .option('env', {
-          type: 'string',
-          description: 'Environment name',
-        })
-        .option('space', {
-          type: 'string',
-          description: 'Space ID to create app in',
-        })
-        .option('thread', {
-          type: 'string',
-          description: 'Thread ID in the space',
-        });
+    {
+      schema: {
+        type: 'string',
+        demandOption: true,
+        description: 'Schema file path',
+      },
+      name: {
+        type: 'string',
+        description: 'App name (overrides schema name)',
+      },
+      env: {
+        type: 'string',
+        description: 'Environment name',
+      },
+      space: {
+        type: 'string',
+        description: 'Space ID to create app in',
+      },
+      thread: {
+        type: 'string',
+        description: 'Thread ID in the space',
+      },
     },
-    (argv) => {
+    (argv: any) => {
+      const a = argv as CreateArgs;
       createCommand({
-        schema: argv.schema,
-        name: argv.name,
-        env: argv.env,
-        space: argv.space,
-        thread: argv.thread,
+        schema: a.schema,
+        name: a.name,
+        env: a.env,
+        space: a.space,
+        thread: a.thread,
       });
     }
   )

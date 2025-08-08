@@ -1,9 +1,10 @@
-import { KintoneRestAPIClient } from '@kintone/rest-api-client';
 import { loadConfig } from '../core/config.js';
 import { loadSchema } from '../core/loader.js';
 import path from 'path';
 import chalk from 'chalk';
 import type { AnyFieldProperties } from 'kintone-effect-schema';
+import { getKintoneClient, isKintoneApiError, addFormFieldsLoose } from '../core/kintone-client.js';
+import type { Mutable } from '../types.js';
 
 interface CreateOptions {
   schema: string;
@@ -26,13 +27,7 @@ export const createCommand = async (options: CreateOptions) => {
     }
 
     // Initialize kintone client
-    const client = new KintoneRestAPIClient({
-      baseUrl: envConfig.auth.baseUrl,
-      auth: {
-        username: envConfig.auth.username,
-        password: envConfig.auth.password,
-      },
-    });
+    const client = getKintoneClient(envConfig.auth);
 
     // Load schema file
     console.log(chalk.blue(`Loading schema from ${options.schema}...`));
@@ -41,9 +36,8 @@ export const createCommand = async (options: CreateOptions) => {
 
     // Prepare app creation payload
     const appName = options.name || schema.name || 'New App from Schema';
-    const createAppPayload: any = {
-      name: appName,
-    };
+    interface CreateAppPayload { name: string; space?: string; thread?: string }
+    const createAppPayload: CreateAppPayload = { name: appName };
 
     // Add space and thread if provided
     if (options.space) {
@@ -74,7 +68,8 @@ export const createCommand = async (options: CreateOptions) => {
       : schema.fieldsConfig;
 
     // Convert readonly properties to mutable for kintone API
-    const fieldsForAPI: Record<string, any> = {};
+    type MutableAnyFieldProperties = Mutable<AnyFieldProperties>;
+    const fieldsForAPI: Record<string, MutableAnyFieldProperties> = {};
     for (const [code, field] of Object.entries(fieldsConfig)) {
       const fieldConfig = field as AnyFieldProperties;
       
@@ -88,7 +83,7 @@ export const createCommand = async (options: CreateOptions) => {
         continue;
       }
       
-      fieldsForAPI[code] = { ...fieldConfig };
+      fieldsForAPI[code] = { ...fieldConfig } as MutableAnyFieldProperties;
     }
 
     // Add fields to the new app
@@ -96,15 +91,15 @@ export const createCommand = async (options: CreateOptions) => {
       console.log(chalk.blue(`\nAdding ${Object.keys(fieldsForAPI).length} field(s) to the app...`));
       
       try {
-        await client.app.addFormFields({
+        await addFormFieldsLoose(client, {
           app: newAppId,
-          properties: fieldsForAPI
+          properties: fieldsForAPI,
         });
         console.log(chalk.green(`✓ Successfully added ${Object.keys(fieldsForAPI).length} field(s)`));
       } catch (error) {
         console.error(chalk.red('Failed to add fields:'));
-        if (error && typeof error === 'object' && 'errors' in error) {
-          const errors = error.errors as Record<string, unknown>;
+        if (isKintoneApiError(error)) {
+          const errors = error.errors;
           for (const [field, fieldError] of Object.entries(errors)) {
             console.error(chalk.red(`  ${field}:`), fieldError);
           }
