@@ -12,8 +12,8 @@ export const convertKintoneFieldsToSchema = (rawFields: unknown): string => {
     // Generate TypeScript code using official generator (0.7.1+ preserves SUBTABLE labels)
     const schemaCode = fieldsConfigToTypeScriptCode(parsed.properties as any);
 
-    // Wrap with defineAppSchema for kintone-as-code integration
-    return `import { defineAppSchema, getAppId } from 'kintone-as-code';
+    // Import helper functions from local utils
+    return `import { defineAppSchema, getAppId } from '../utils/helpers.js';
 ${schemaCode}
 
 // Export app schema configuration

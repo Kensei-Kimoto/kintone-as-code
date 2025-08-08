@@ -48,10 +48,38 @@ KINTONE_CUSTOMER_APP_ID=123
 KINTONE_PRODUCT_APP_ID=456
 `;
 
+const helpersTemplate = `// Helper functions for kintone-as-code schemas
+
+/**
+ * Helper function to define app schema with type safety
+ */
+export function defineAppSchema<T extends { 
+  appId: number | string; 
+  name: string; 
+  description?: string;
+  fieldsConfig: any 
+}>(schema: T): T {
+  return schema;
+}
+
+/**
+ * Helper function to get app ID from environment variable
+ */
+export function getAppId(envVarName: string): string {
+  const appId = process.env[envVarName];
+  if (!appId) {
+    throw new Error(\`Environment variable \${envVarName} is not set\`);
+  }
+  return appId;
+}
+`;
+
 export const init = async ({ force }: { force?: boolean | undefined }) => {
   const configPath = path.join(process.cwd(), 'kintone-as-code.config.js');
   const envExamplePath = path.join(process.cwd(), '.env.example');
   const appsPath = path.join(process.cwd(), 'apps');
+  const utilsPath = path.join(process.cwd(), 'utils');
+  const helpersPath = path.join(utilsPath, 'helpers.ts');
   const packageJsonPath = path.join(process.cwd(), 'package.json');
 
   const fileExists = async (filePath: string) => {
@@ -71,6 +99,8 @@ export const init = async ({ force }: { force?: boolean | undefined }) => {
   await fs.writeFile(configPath, configTemplate.trim());
   await fs.writeFile(envExamplePath, envExampleTemplate.trim());
   await fs.mkdir(appsPath, { recursive: true });
+  await fs.mkdir(utilsPath, { recursive: true });
+  await fs.writeFile(helpersPath, helpersTemplate.trim());
 
   // Update package.json to use ES modules if it exists
   if (await fileExists(packageJsonPath)) {
@@ -145,6 +175,7 @@ export const init = async ({ force }: { force?: boolean | undefined }) => {
   console.log(`- kintone-as-code.config.js`);
   console.log(`- .env.example`);
   console.log(`- apps/`);
+  console.log(`- utils/helpers.ts`);
   console.log('\nNext steps:');
   console.log('1. Run: npm install');
   console.log('2. Copy .env.example to .env and update with your credentials');
