@@ -8,7 +8,7 @@ kintoneアプリの設定をコードで管理し、Effect-TSによる型安全�
 - 📝 **kintoneからエクスポート** - 既存アプリからスキーマファイルを生成
 - 🔧 **環境管理** - 複数のkintone環境をサポート
 - 🎯 **Effect-TS対応** - Effect-TSの強力なスキーマバリデーション機能
-- 📋 **レコードスキーマ生成** - カスタマイズ開発用の型安全なレコードスキーマを自動生成
+- 📋 **レコードスキーマ生成** - コピペ可能な静的レコードスキーマを自動生成
 
 ## インストール
 
@@ -38,8 +38,9 @@ kintone-as-code export --app-id 123 --name customer-app
 ```
 
 以下のファイルが生成されます：
+
 - `apps/customer-app.schema.ts` - 完全に型付けされたフィールド定義
-- `apps/customer-app.record-schema.ts` - 型安全なレコードバリデーションスキーマ（新機能！）
+- `apps/customer-app.record-schema.ts` - 静的な型安全レコードスキーマ（そのままコピペで利用可能）
 
 ### 3. アプリスキーマの定義
 
@@ -47,48 +48,48 @@ kintone-as-code export --app-id 123 --name customer-app
 
 ```typescript
 import { defineAppSchema, getAppId } from 'kintone-as-code';
-import type { 
+import type {
   SingleLineTextFieldProperties,
   NumberFieldProperties,
-  SubtableFieldProperties 
+  SubtableFieldProperties,
 } from 'kintone-effect-schema';
 
 // 完全な型情報を持つ個別フィールド定義
 export const 会社名Field: SingleLineTextFieldProperties = {
-  type: "SINGLE_LINE_TEXT",
-  code: "会社名",
-  label: "会社名",
+  type: 'SINGLE_LINE_TEXT',
+  code: '会社名',
+  label: '会社名',
   required: true,
   unique: true,
-  maxLength: "100"
+  maxLength: '100',
 };
 
 export const 売上高Field: NumberFieldProperties = {
-  type: "NUMBER",
-  code: "売上高",
-  label: "年間売上高",
-  unit: "円",
-  unitPosition: "AFTER"
+  type: 'NUMBER',
+  code: '売上高',
+  label: '年間売上高',
+  unit: '円',
+  unitPosition: 'AFTER',
 };
 
 // ネストされたフィールドを持つサブテーブル
 export const 商品リストField: SubtableFieldProperties = {
-  type: "SUBTABLE",
-  code: "商品リスト",
+  type: 'SUBTABLE',
+  code: '商品リスト',
   fields: {
     商品名: {
-      type: "SINGLE_LINE_TEXT",
-      code: "商品名",
-      label: "商品名",
-      required: true
+      type: 'SINGLE_LINE_TEXT',
+      code: '商品名',
+      label: '商品名',
+      required: true,
     },
     単価: {
-      type: "NUMBER",
-      code: "単価",
-      label: "単価",
-      unit: "円"
-    }
-  }
+      type: 'NUMBER',
+      code: '単価',
+      label: '単価',
+      unit: '円',
+    },
+  },
 };
 
 // アプリフィールド設定
@@ -96,8 +97,8 @@ export const appFieldsConfig = {
   properties: {
     会社名: 会社名Field,
     売上高: 売上高Field,
-    商品リスト: 商品リストField
-  }
+    商品リスト: 商品リストField,
+  },
 };
 
 // アプリスキーマ定義
@@ -105,7 +106,7 @@ export default defineAppSchema({
   appId: getAppId('KINTONE_CUSTOMER_APP_ID'),
   name: '顧客管理',
   description: '顧客情報管理アプリ',
-  fieldsConfig: appFieldsConfig
+  fieldsConfig: appFieldsConfig,
 });
 ```
 
@@ -135,15 +136,15 @@ export default {
         password: process.env.KINTONE_PASSWORD,
         // またはAPIトークンを使用
         // apiToken: process.env.KINTONE_API_TOKEN,
-      }
+      },
     },
     development: {
       auth: {
         baseUrl: 'https://dev.cybozu.com',
         apiToken: process.env.KINTONE_DEV_API_TOKEN,
-      }
-    }
-  }
+      },
+    },
+  },
 };
 ```
 
@@ -186,6 +187,7 @@ kintone-as-code export [options]
 ```
 
 exportコマンドはデフォルトで2つのファイルを生成します：
+
 1. **フィールドスキーマ** (`{name}.schema.ts`) - フィールド定義と設定
 2. **レコードスキーマ** (`{name}.record-schema.ts`) - Effect Schemaによる型安全なレコードバリデーション
 
@@ -223,62 +225,77 @@ kintone-as-code create [options]
 
 ```typescript
 import { KintoneRestAPIClient } from '@kintone/rest-api-client';
-import { validateRecord } from './apps/customer-app.record-schema';
+import {
+  validateRecord,
+  type AppRecord,
+} from './apps/customer-app.record-schema';
 
 // クライアントの初期化
 const client = new KintoneRestAPIClient({
   baseUrl: 'https://example.cybozu.com',
-  auth: { apiToken: 'YOUR_API_TOKEN' }
+  auth: { apiToken: 'YOUR_API_TOKEN' },
 });
 
 // レコードの取得とバリデーション（自動正規化付き）
-const response = await client.record.getRecord({ 
-  app: 123, 
-  id: 1 
+const response = await client.record.getRecord({
+  app: 123,
+  id: 1,
 });
-const validatedRecord = validateRecord(response.record);
-// validatedRecordは完全に型付け＆正規化されています！
+const validatedRecord: AppRecord = validateRecord(response.record);
+// validatedRecord は完全に型付け＆正規化されています（型アサーション不要）
 // 数値フィールドの空文字列 → null、undefined → '' など
 
 // 複数レコードの検証
-const recordsResponse = await client.record.getRecords({ 
+const recordsResponse = await client.record.getRecords({
   app: 123,
-  query: 'limit 100'
+  query: 'limit 100',
 });
-const validatedRecords = recordsResponse.records.map(record => 
+const validatedRecords = recordsResponse.records.map((record) =>
   validateRecord(record)
 );
+```
+
+### 生成されるレコードスキーマの例（シンプル）
+
+```ts
+import { Schema } from 'effect';
+import {
+  SingleLineTextFieldSchema,
+  NumberFieldSchema,
+  decodeKintoneRecord,
+} from 'kintone-effect-schema';
+
+// 静的出力の例
+export const RecordSchema = Schema.Struct({
+  title: SingleLineTextFieldSchema,
+  amount: NumberFieldSchema,
+});
+
+export type AppRecord = Schema.Schema.Type<typeof RecordSchema>;
+
+export const validateRecord = (record: Record<string, unknown>): AppRecord => {
+  const normalized = decodeKintoneRecord(record);
+  return Schema.decodeUnknownSync(RecordSchema)(normalized);
+};
 ```
 
 ### JavaScript API利用時（カスタマイズ）
 
 ```typescript
-import { validateRecord } from './apps/customer-app.record-schema';
+import {
+  validateRecord,
+  type AppRecord,
+} from './apps/customer-app.record-schema';
 
 kintone.events.on('app.record.detail.show', (event) => {
   // 同じ関数でJavaScript APIも処理可能
-  const validatedRecord = validateRecord(event.record);
+  const validatedRecord: AppRecord = validateRecord(event.record);
   // すべての空値の不整合を自動的に処理
-  
+
   // 型安全にアクセス
   console.log(validatedRecord.会社名.value);
   return event;
 });
-```
-
-### カスタムバリデーションの活用
-
-```typescript
-import { validateRecordWithCustomRules } from './apps/customer-app.record-schema';
-
-// カスタムルールは生成されたファイルで定義
-// 自動正規化も含まれる
-try {
-  const validatedRecord = validateRecordWithCustomRules(record);
-  // カスタムルールも含めて検証済みのレコード
-} catch (error) {
-  console.error('バリデーションエラー:', error);
-}
 ```
 
 ### ポイント

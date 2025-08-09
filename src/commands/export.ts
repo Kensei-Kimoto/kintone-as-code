@@ -1,8 +1,10 @@
-
 import fs from 'fs/promises';
 import path from 'path';
 import { getKintoneClient } from '../core/kintone-client.js';
-import { convertKintoneFieldsToSchema, generateRecordSchemaCode } from '../core/converter.js';
+import {
+  convertKintoneFieldsToSchema,
+  generateStaticRecordSchemaCode,
+} from '../core/converter.js';
 import { loadConfig } from '../core/config.js';
 
 interface ExportOptions {
@@ -22,9 +24,9 @@ const toConstantName = (name: string): string => {
 const updateAppIds = async (appName: string, appId: string) => {
   const utilsDir = path.join(process.cwd(), 'utils');
   const appIdsPath = path.join(utilsDir, 'app-ids.ts');
-  
+
   await fs.mkdir(utilsDir, { recursive: true });
-  
+
   let content = '';
   try {
     content = await fs.readFile(appIdsPath, 'utf-8');
@@ -36,10 +38,10 @@ export const APP_IDS = {
 } as const;
 `;
   }
-  
+
   const constantName = toConstantName(appName);
   const appIdNum = parseInt(appId, 10);
-  
+
   // Check if APP_IDS already contains this app
   const appIdPattern = new RegExp(`^\\s*${constantName}:\\s*\\d+,?$`, 'm');
   if (appIdPattern.test(content)) {
@@ -51,15 +53,19 @@ export const APP_IDS = {
     if (insertPos !== -1) {
       const before = content.substring(0, insertPos);
       const after = content.substring(insertPos);
-      
+
       // Check if we need a comma
-      const needsComma = before.trim().endsWith('}') ? '' : before.match(/\d+\s*$/m) ? ',' : '';
+      const needsComma = before.trim().endsWith('}')
+        ? ''
+        : before.match(/\d+\s*$/m)
+          ? ','
+          : '';
       content = `${before}${needsComma}
   ${constantName}: ${appIdNum},
 ${after}`;
     }
   }
-  
+
   await fs.writeFile(appIdsPath, content);
   return constantName;
 };
@@ -81,7 +87,11 @@ export const exportCommand = async (options: ExportOptions) => {
     // Update app-ids.ts
     const appConstantName = await updateAppIds(options.name, options.appId);
 
-    const schemaContent = convertKintoneFieldsToSchema(formFields, appConstantName, options.name);
+    const schemaContent = convertKintoneFieldsToSchema(
+      formFields,
+      appConstantName,
+      options.name
+    );
 
     const outputDir = options.output || 'apps';
     await fs.mkdir(outputDir, { recursive: true });
@@ -93,14 +103,23 @@ export const exportCommand = async (options: ExportOptions) => {
 
     // Generate record schema if requested (default: true)
     if (options.withRecordSchema !== false) {
-      const recordSchemaContent = generateRecordSchemaCode(options.name);
-      const recordSchemaPath = path.join(outputDir, `${options.name}.record-schema.ts`);
+      // Prefer static record schema generation using the properties from parsed form
+      const recordSchemaContent = generateStaticRecordSchemaCode(
+        options.name,
+        formFields.properties as any
+      );
+      const recordSchemaPath = path.join(
+        outputDir,
+        `${options.name}.record-schema.ts`
+      );
       await fs.writeFile(recordSchemaPath, recordSchemaContent);
       console.log(`Successfully exported record schema to ${recordSchemaPath}`);
     }
 
     // Note: Form schema (Effect-TS) generation is not performed here
   } catch (error) {
-    console.error(`Error during export: ${error instanceof Error ? error.message : String(error)}`);
+    console.error(
+      `Error during export: ${error instanceof Error ? error.message : String(error)}`
+    );
   }
 };

@@ -16,7 +16,7 @@ Manage kintone app configurations as code with type safety using Effect-TS.
 - ✨ **Create apps** - Create new kintone apps from schema definitions
 - 🔧 **Environment management** - Support multiple kintone environments
 - 🎯 **Effect-TS powered** - Leverage the power of Effect-TS for schema validation
-- 📋 **Record Schema Generation** - Automatically generate type-safe record schemas for customization development
+- 📋 **Record Schema Generation** - Generates static, copy-paste-friendly record schemas for customization
 
 ## Installation
 
@@ -46,8 +46,9 @@ kintone-as-code export --app-id 123 --name customer-app
 ```
 
 This generates:
+
 - `apps/customer-app.schema.ts` - Fully typed field definitions
-- `apps/customer-app.record-schema.ts` - Type-safe record validation schema (new!)
+- `apps/customer-app.record-schema.ts` - Static, type-safe record validation schema (copy-paste friendly)
 
 ### 3. Apply changes to existing app
 
@@ -71,48 +72,48 @@ The exported schema uses kintone-effect-schema for complete type safety:
 
 ```typescript
 import { defineAppSchema, getAppId } from 'kintone-as-code';
-import type { 
+import type {
   SingleLineTextFieldProperties,
   NumberFieldProperties,
-  SubtableFieldProperties 
+  SubtableFieldProperties,
 } from 'kintone-effect-schema';
 
 // Individual field definitions with complete type information
 export const companyNameField: SingleLineTextFieldProperties = {
-  type: "SINGLE_LINE_TEXT",
-  code: "会社名",
-  label: "会社名",
+  type: 'SINGLE_LINE_TEXT',
+  code: '会社名',
+  label: '会社名',
   required: true,
   unique: true,
-  maxLength: "100"
+  maxLength: '100',
 };
 
 export const revenueField: NumberFieldProperties = {
-  type: "NUMBER",
-  code: "売上高",
-  label: "年間売上高",
-  unit: "円",
-  unitPosition: "AFTER"
+  type: 'NUMBER',
+  code: '売上高',
+  label: '年間売上高',
+  unit: '円',
+  unitPosition: 'AFTER',
 };
 
 // Subtable with nested fields
 export const productsField: SubtableFieldProperties = {
-  type: "SUBTABLE",
-  code: "products",
+  type: 'SUBTABLE',
+  code: 'products',
   fields: {
     productName: {
-      type: "SINGLE_LINE_TEXT",
-      code: "productName",
-      label: "商品名",
-      required: true
+      type: 'SINGLE_LINE_TEXT',
+      code: 'productName',
+      label: '商品名',
+      required: true,
     },
     price: {
-      type: "NUMBER",
-      code: "price",
-      label: "単価",
-      unit: "円"
-    }
-  }
+      type: 'NUMBER',
+      code: 'price',
+      label: '単価',
+      unit: '円',
+    },
+  },
 };
 
 // App fields configuration
@@ -120,8 +121,8 @@ export const appFieldsConfig = {
   properties: {
     会社名: companyNameField,
     売上高: revenueField,
-    products: productsField
-  }
+    products: productsField,
+  },
 };
 
 // App schema definition
@@ -129,7 +130,7 @@ export default defineAppSchema({
   appId: getAppId('KINTONE_CUSTOMER_APP_ID'),
   name: 'Customer Management',
   description: 'Customer information management app',
-  fieldsConfig: appFieldsConfig
+  fieldsConfig: appFieldsConfig,
 });
 ```
 
@@ -159,15 +160,15 @@ export default {
         password: process.env.KINTONE_PASSWORD,
         // or use API token
         // apiToken: process.env.KINTONE_API_TOKEN,
-      }
+      },
     },
     development: {
       auth: {
         baseUrl: 'https://dev.cybozu.com',
         apiToken: process.env.KINTONE_DEV_API_TOKEN,
-      }
-    }
-  }
+      },
+    },
+  },
 };
 ```
 
@@ -210,6 +211,7 @@ Options:
 ```
 
 The export command now generates two files by default:
+
 1. **Field Schema** (`{name}.schema.ts`) - Field definitions and configurations
 2. **Record Schema** (`{name}.record-schema.ts`) - Type-safe record validation with Effect Schema
 
@@ -227,6 +229,7 @@ Options:
 ```
 
 Features:
+
 - Updates existing fields with type-safe validation
 - Automatically detects and adds new fields
 - Deploys changes after successful update
@@ -246,6 +249,7 @@ Options:
 ```
 
 Features:
+
 - Creates new app with all fields defined in schema
 - Supports creating apps in specific spaces
 - Automatically deploys the app after creation
@@ -256,45 +260,65 @@ The generated record schema provides type-safe validation for kintone records wi
 
 ```typescript
 import { KintoneRestAPIClient } from '@kintone/rest-api-client';
-import { validateRecord } from './apps/customer-app.record-schema';
+import {
+  validateRecord,
+  type AppRecord,
+} from './apps/customer-app.record-schema';
 
 // Initialize client
 const client = new KintoneRestAPIClient({
   baseUrl: 'https://example.cybozu.com',
-  auth: { apiToken: 'YOUR_API_TOKEN' }
+  auth: { apiToken: 'YOUR_API_TOKEN' },
 });
 
 // Fetch and validate record with automatic normalization
-const response = await client.record.getRecord({ 
-  app: 123, 
-  id: 1 
+const response = await client.record.getRecord({
+  app: 123,
+  id: 1,
 });
-const validatedRecord = validateRecord(response.record);
-// validatedRecord is now fully typed and normalized!
+const validatedRecord: AppRecord = validateRecord(response.record);
+// validatedRecord is fully typed and normalized (no type assertions needed)
 // Empty strings in number fields → null, undefined → '', etc.
+```
+
+### Example of generated Record Schema (simple)
+
+```ts
+import { Schema } from 'effect';
+import {
+  SingleLineTextFieldSchema,
+  NumberFieldSchema,
+  decodeKintoneRecord,
+} from 'kintone-effect-schema';
+
+// Static output example
+export const RecordSchema = Schema.Struct({
+  title: SingleLineTextFieldSchema,
+  amount: NumberFieldSchema,
+});
+
+export type AppRecord = Schema.Schema.Type<typeof RecordSchema>;
+
+export const validateRecord = (record: Record<string, unknown>): AppRecord => {
+  const normalized = decodeKintoneRecord(record);
+  return Schema.decodeUnknownSync(RecordSchema)(normalized);
+};
 ```
 
 ### JavaScript API Usage (Customization)
 
 ```typescript
-import { validateRecord } from './apps/customer-app.record-schema';
+import {
+  validateRecord,
+  type AppRecord,
+} from './apps/customer-app.record-schema';
 
 kintone.events.on('app.record.detail.show', (event) => {
   // Same function works for JavaScript API
-  const validatedRecord = validateRecord(event.record);
+  const validatedRecord: AppRecord = validateRecord(event.record);
   // Handles all empty value inconsistencies automatically
   return event;
 });
-```
-
-### Custom Validation Rules
-
-```typescript
-import { validateRecordWithCustomRules } from './apps/customer-app.record-schema';
-
-// Custom rules are defined in the generated file
-// Also includes automatic normalization
-const validatedRecord = validateRecordWithCustomRules(record);
 ```
 
 ## Best Practices
