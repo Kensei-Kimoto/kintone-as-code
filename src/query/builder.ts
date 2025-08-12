@@ -1,161 +1,61 @@
 /**
- * Query builder for kintone
- * Provides fluent interface for building queries
+ * Query builder (OO facade) backed by functional core
  */
 
-import { Expression, toString } from './expression.js';
+import { Expression } from './expression.js';
 import {
-  validateExpressionDepth,
-  validateQueryStringLength,
-} from './validator.js';
+  type QueryState,
+  createQueryState,
+  where as setWhere,
+  orderBy as appendOrder,
+  limit as withLimit,
+  offset as withOffset,
+  setValidationOptions,
+  build as buildFromState,
+} from './builder-fp.js';
 
 export class QueryBuilder {
-  private whereClause: Expression | undefined = undefined;
-  private orderByClause:
-    | Array<{ field: string; direction: 'asc' | 'desc' }>
-    | undefined = undefined;
-  private limitValue: number | undefined = undefined;
-  private offsetValue: number | undefined = undefined;
-  private validationOptions:
-    | {
-        maxDepth?: number;
-        maxLength?: number;
-      }
-    | undefined = undefined;
+  private state: QueryState = createQueryState();
 
-  /**
-   * Set WHERE clause
-   * @param expr Expression to use as WHERE clause
-   */
   where(expr: Expression): this {
-    this.whereClause = expr;
+    this.state = setWhere(expr)(this.state);
     return this;
   }
 
-  /**
-   * Add ORDER BY clause
-   * @param field Field name to order by
-   * @param direction Sort direction (default: 'asc')
-   */
   orderBy(field: string, direction: 'asc' | 'desc' = 'asc'): this {
-    if (!this.orderByClause) {
-      this.orderByClause = [];
-    }
-    this.orderByClause.push({ field, direction });
+    this.state = appendOrder(field, direction)(this.state);
     return this;
   }
 
-  /**
-   * Set LIMIT clause
-   * @param value Number of records to return (max: 500)
-   */
   limit(value: number): this {
-    if (value < 1) {
-      throw new Error('Limit must be at least 1');
-    }
-    if (value > 500) {
-      throw new Error('kintone API limit: maximum 500 records per request');
-    }
-    this.limitValue = value;
+    this.state = withLimit(value)(this.state);
     return this;
   }
 
-  /**
-   * Set OFFSET clause
-   * @param value Number of records to skip
-   */
   offset(value: number): this {
-    if (value < 0) {
-      throw new Error('Offset must be non-negative');
-    }
-    this.offsetValue = value;
+    this.state = withOffset(value)(this.state);
     return this;
   }
 
-  /**
-   * Set validation options (optional)
-   */
-  setValidationOptions(options: {
-    maxDepth?: number;
-    maxLength?: number;
-  }): this {
-    this.validationOptions = options;
+  setValidationOptions(options: { maxDepth?: number; maxLength?: number }): this {
+    this.state = setValidationOptions(options)(this.state);
     return this;
   }
 
-  /**
-   * Build the final query string
-   * @returns The complete query string for kintone API
-   */
   build(): string {
-    const parts: string[] = [];
-
-    // Add WHERE clause
-    if (this.whereClause) {
-      parts.push(toString(this.whereClause));
-    }
-
-    // Add ORDER BY clause
-    if (this.orderByClause && this.orderByClause.length > 0) {
-      const orderBy = this.orderByClause
-        .map(({ field, direction }) => `${field} ${direction}`)
-        .join(', ');
-      parts.push(`order by ${orderBy}`);
-    }
-
-    // Add LIMIT clause
-    if (this.limitValue !== undefined) {
-      parts.push(`limit ${this.limitValue}`);
-    }
-
-    // Add OFFSET clause
-    if (this.offsetValue !== undefined) {
-      parts.push(`offset ${this.offsetValue}`);
-    }
-
-    const built = parts.join(' ');
-
-    // Validation
-    if (this.whereClause) {
-      // Depth check based on expression tree
-      const depthOpts =
-        this.validationOptions?.maxDepth !== undefined
-          ? { maxDepth: this.validationOptions.maxDepth }
-          : undefined;
-      validateExpressionDepth(this.whereClause, depthOpts);
-    }
-    // Length check on the built query string (always safe)
-    const lengthOpts =
-      this.validationOptions?.maxLength !== undefined
-        ? { maxLength: this.validationOptions.maxLength }
-        : undefined;
-    validateQueryStringLength(built, lengthOpts);
-
-    return built;
+    return buildFromState(this.state);
   }
 
-  /**
-   * Reset the builder to initial state
-   */
   reset(): this {
-    this.whereClause = undefined;
-    this.orderByClause = undefined;
-    this.limitValue = undefined;
-    this.offsetValue = undefined;
+    this.state = createQueryState();
     return this;
   }
 
-  /**
-   * Clone the current builder state
-   */
   clone(): QueryBuilder {
-    const newBuilder = new QueryBuilder();
-    newBuilder.whereClause = this.whereClause;
-    newBuilder.orderByClause = this.orderByClause
-      ? [...this.orderByClause]
-      : undefined;
-    newBuilder.limitValue = this.limitValue;
-    newBuilder.offsetValue = this.offsetValue;
-    return newBuilder;
+    const qb = new QueryBuilder();
+    // state is a plain object; shallow copy is enough since values are immutable
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (qb as any).state = { ...this.state };
+    return qb;
   }
 }
