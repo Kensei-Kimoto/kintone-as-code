@@ -319,7 +319,7 @@ import { and, or } from 'kintone-as-code';
 // すべてのフィールド名が自動補完される
 const { 会社名, ステータス, 売上高, 担当者 } = QueryFields;
 
-// 型安全なクエリを構築
+// 型安全なクエリを構築（メソッドチェーンの例）
 const query = createQuery()
   .where(
     and(
@@ -332,11 +332,39 @@ const query = createQuery()
   .limit(100)
   .build();
 
+// 関数型API（純関数）での構築例
+import {
+  createQueryState,
+  setWhere,
+  appendOrder,
+  withLimit,
+  build,
+} from 'kintone-as-code/query';
+
+const q2 = build(
+  withLimit(100)(
+    appendOrder(
+      '売上高',
+      'desc'
+    )(
+      setWhere(
+        and(
+          会社名.like('*サイボウズ*'),
+          売上高.greaterThan(1000000),
+          ステータス.in(['商談中', '受注'])
+        )
+      )(createQueryState())
+    )
+  )
+);
+
 // kintone REST APIで使用
-const client = new KintoneRestAPIClient({ /* ... */ });
+const client = new KintoneRestAPIClient({
+  /* ... */
+});
 const records = await client.record.getRecords({
   app: 123,
-  query: query
+  query: query,
 });
 ```
 
@@ -352,25 +380,25 @@ const records = await client.record.getRecords({
 
 ```typescript
 // 文字列フィールドは like/not like をサポート
-会社名.like('*株式会社*')
-会社名.notLike('*test*')
+会社名.like('*株式会社*');
+会社名.notLike('*test*');
 
 // 数値フィールドは比較演算子をサポート
-売上高.greaterThan(1000000)
-売上高.lessThanOrEqual(5000000)
+売上高.greaterThan(1000000);
+売上高.lessThanOrEqual(5000000);
 
 // ドロップダウンは in/not in を使用
-ステータス.in(['商談中', '受注'])
-ステータス.notIn(['失注', 'キャンセル'])
+ステータス.in(['商談中', '受注']);
+ステータス.notIn(['失注', 'キャンセル']);
 
 // 日付フィールドは日付関数をサポート
-契約日.equals(TODAY())
-期限日.lessThan(FROM_TODAY(7, 'DAYS'))
-登録日.in([THIS_MONTH()])
+契約日.equals(TODAY());
+期限日.lessThan(FROM_TODAY(7, 'DAYS'));
+登録日.in([THIS_MONTH()]);
 
 // ユーザーフィールドはユーザー関数をサポート
-担当者.equals(LOGINUSER())
-作成者.in(['user1', 'user2'])
+担当者.equals(LOGINUSER());
+作成者.in(['user1', 'user2']);
 ```
 
 ## ベストプラクティス

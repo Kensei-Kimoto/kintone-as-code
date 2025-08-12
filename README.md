@@ -248,7 +248,8 @@ kintone-as-code create [options]
 Options:
   --schema <path>   Path to schema file (required)
   --name <name>     Override app name from schema
-  --space-id <id>   Create app in specific space
+  --space <id>      Create app in specific space
+  --thread <id>     Thread ID in the space (when creating inside a space)
   --env <env>       Environment name
 ```
 
@@ -337,6 +338,7 @@ import { and, or } from 'kintone-as-code';
 const { 会社名, ステータス, 売上高, 担当者 } = QueryFields;
 
 // Build type-safe queries
+// OO facade (method-chain)
 const query = createQuery()
   .where(
     and(
@@ -350,10 +352,35 @@ const query = createQuery()
   .build();
 
 // Use with kintone REST API
-const client = new KintoneRestAPIClient({ /* ... */ });
+const client = new KintoneRestAPIClient({
+  /* ... */
+});
+
+// Functional API (pure functions)
+import {
+  createQueryState,
+  setWhere,
+  appendOrder,
+  withLimit,
+  build,
+} from 'kintone-as-code/query';
+
+const query2 = build(
+  withLimit(100)(
+    appendOrder('売上高', 'desc')(
+      setWhere(
+        and(
+          会社名.like('*サイボウズ*'),
+          売上高.greaterThan(1000000),
+          ステータス.in(['商談中', '受注'])
+        )
+      )(createQueryState())
+    )
+  )
+);
 const records = await client.record.getRecords({
   app: 123,
-  query: query
+  query: query,
 });
 ```
 
@@ -369,25 +396,25 @@ const records = await client.record.getRecords({
 
 ```typescript
 // String fields support like/not like
-会社名.like('*株式会社*')
-会社名.notLike('*test*')
+会社名.like('*株式会社*');
+会社名.notLike('*test*');
 
 // Number fields support comparison operators
-売上高.greaterThan(1000000)
-売上高.lessThanOrEqual(5000000)
+売上高.greaterThan(1000000);
+売上高.lessThanOrEqual(5000000);
 
 // Dropdown fields use in/not in
-ステータス.in(['商談中', '受注'])
-ステータス.notIn(['失注', 'キャンセル'])
+ステータス.in(['商談中', '受注']);
+ステータス.notIn(['失注', 'キャンセル']);
 
 // Date fields support date functions
-契約日.equals(TODAY())
-期限日.lessThan(FROM_TODAY(7, 'DAYS'))
-登録日.in([THIS_MONTH()])
+契約日.equals(TODAY());
+期限日.lessThan(FROM_TODAY(7, 'DAYS'));
+登録日.in([THIS_MONTH()]);
 
 // User fields support user functions
-担当者.equals(LOGINUSER())
-作成者.in(['user1', 'user2'])
+担当者.equals(LOGINUSER());
+作成者.in(['user1', 'user2']);
 ```
 
 ## Best Practices
