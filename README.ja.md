@@ -140,14 +140,13 @@ export default {
         baseUrl: 'https://your-domain.cybozu.com',
         username: process.env.KINTONE_USERNAME,
         password: process.env.KINTONE_PASSWORD,
-        // またはAPIトークンを使用
-        // apiToken: process.env.KINTONE_API_TOKEN,
       },
     },
     development: {
       auth: {
         baseUrl: 'https://dev.cybozu.com',
-        apiToken: process.env.KINTONE_DEV_API_TOKEN,
+        username: process.env.KINTONE_USERNAME,
+        password: process.env.KINTONE_PASSWORD,
       },
     },
   },

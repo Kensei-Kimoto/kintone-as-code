@@ -5,22 +5,11 @@ import { type AuthConfig, type FieldUpdatePayload } from '../types.js';
 dotenv.config();
 
 export const getKintoneClient = (authConfig: AuthConfig) => {
-  // Password authentication
-  if ('username' in authConfig) {
-    return new KintoneRestAPIClient({
-      baseUrl: authConfig.baseUrl,
-      auth: {
-        username: authConfig.username,
-        password: authConfig.password,
-      },
-    });
-  }
-  
-  // API token authentication
   return new KintoneRestAPIClient({
     baseUrl: authConfig.baseUrl,
     auth: {
-      apiToken: authConfig.apiToken,
+      username: authConfig.username,
+      password: authConfig.password,
     },
   });
 };
