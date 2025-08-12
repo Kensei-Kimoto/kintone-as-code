@@ -124,7 +124,7 @@ import {
   build,
   and,
   or,
-  not${hasDateFields ? ',\n  // Date functions\n  TODAY,\n  FROM_TODAY,\n  THIS_WEEK,\n  THIS_MONTH,\n  THIS_YEAR' : ''},
+  not${hasDateFields ? ',\n  // Date functions\n  TODAY,\n  FROM_TODAY,\n  THIS_WEEK,\n  THIS_MONTH,\n  THIS_YEAR,\n  NOW,\n  LAST_WEEK,\n  LAST_MONTH,\n  LAST_YEAR' : ''},
   type ValidationOptions,
   type Expression
 } from 'kintone-as-code';
