@@ -37,7 +37,10 @@ export class QueryBuilder {
     return this;
   }
 
-  setValidationOptions(options: { maxDepth?: number; maxLength?: number }): this {
+  setValidationOptions(options: {
+    maxDepth?: number;
+    maxLength?: number;
+  }): this {
     this.state = setValidationOptions(options)(this.state);
     return this;
   }
