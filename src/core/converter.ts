@@ -16,10 +16,11 @@ export const convertKintoneFieldsToSchema = (
     const classicCode = generateFieldsConfigCode(parsed.properties as any);
     return `${classicCode}
 
-import { defineAppSchema, getAppId } from 'kintone-as-code';
+import { defineAppSchema } from 'kintone-as-code';
+import { APP_IDS } from '../utils/app-ids.js';
 
 export default defineAppSchema({
-  appId: getAppId('${appConstantName || 'MY_APP'}'),
+  appId: APP_IDS.${appConstantName || 'MY_APP'},
   name: '${appName || 'Exported App'}',
   description: 'This schema was exported from kintone.',
   fieldsConfig: appFieldsConfig

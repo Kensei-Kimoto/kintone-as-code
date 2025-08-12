@@ -122,14 +122,10 @@ export default defineAppSchema({
 
 ## 設定
 
-### 環境変数
+### アプリIDの管理
 
-アプリIDを環境変数として設定します：
-
-```bash
-KINTONE_CUSTOMER_APP_ID=123
-KINTONE_PRODUCT_APP_ID=456
-```
+`utils/app-ids.ts` にアプリIDをまとめて管理します（`export const APP_IDS = { ... } as const;`）。
+環境変数方式も利用できますが、現在は `APP_IDS` に集約する運用を推奨します。
 
 ### 設定ファイル
 
