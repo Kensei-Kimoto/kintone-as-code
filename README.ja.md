@@ -41,6 +41,7 @@ kintone-as-code export --app-id 123 --name customer-app
 
 - `apps/customer-app.schema.ts` - 完全に型付けされたフィールド定義
 - `apps/customer-app.record-schema.ts` - 静的な型安全レコードスキーマ（そのままコピペで利用可能）
+- `apps/customer-app.query.ts` - kintone API用の型安全なクエリビルダー（デフォルトで生成）
 
 ### 3. アプリスキーマの定義
 
@@ -184,12 +185,15 @@ kintone-as-code export [options]
   --output <dir>            出力ディレクトリ（デフォルト: "apps"）
   --with-record-schema      レコードスキーマファイルを生成（デフォルト: true）
   --no-record-schema        レコードスキーマ生成をスキップ
+  --with-query              クエリビルダーファイルを生成（デフォルト: true）
+  --no-query                クエリビルダー生成をスキップ
 ```
 
-exportコマンドはデフォルトで2つのファイルを生成します：
+exportコマンドはデフォルトで3つのファイルを生成します：
 
 1. **フィールドスキーマ** (`{name}.schema.ts`) - フィールド定義と設定
 2. **レコードスキーマ** (`{name}.record-schema.ts`) - Effect Schemaによる型安全なレコードバリデーション
+3. **クエリビルダー** (`{name}.query.ts`) - kintone REST API用の型安全なクエリビルダー
 
 ### apply
 
@@ -199,7 +203,7 @@ exportコマンドはデフォルトで2つのファイルを生成します：
 kintone-as-code apply [options]
 
 オプション:
-  --app-id <id>    適用先のアプリID（必須）
+  --app-id <id>    適用先のアプリID（省略可。指定がない場合はスキーマの appId を使用）
   --schema <path>  スキーマファイルパス（必須）
   --env <env>      環境名
 ```
@@ -303,6 +307,71 @@ kintone.events.on('app.record.detail.show', (event) => {
 - **validateRecord**: REST API・JavaScript API両方で使用可能（自動正規化あり）
 - **validateRecordWithCustomRules**: カスタムルール + 自動正規化
 - どちらのAPIでも同じ関数で安全に処理できます！
+
+## クエリビルダーの使用方法
+
+生成されたクエリビルダーはIDEの自動補完を備えた型安全なクエリ構築を提供します：
+
+```typescript
+import { QueryFields, createQuery } from './apps/customer-app.query';
+import { and, or } from 'kintone-as-code';
+
+// すべてのフィールド名が自動補完される
+const { 会社名, ステータス, 売上高, 担当者 } = QueryFields;
+
+// 型安全なクエリを構築
+const query = createQuery()
+  .where(
+    and(
+      会社名.like('*サイボウズ*'),
+      売上高.greaterThan(1000000),
+      ステータス.in(['商談中', '受注'])
+    )
+  )
+  .orderBy('売上高', 'desc')
+  .limit(100)
+  .build();
+
+// kintone REST APIで使用
+const client = new KintoneRestAPIClient({ /* ... */ });
+const records = await client.record.getRecords({
+  app: 123,
+  query: query
+});
+```
+
+### クエリビルダーの機能
+
+- **型安全なフィールドアクセス**: すべてのフィールドがkintoneフィールドタイプに基づいて型付け
+- **フィールド固有の演算子**: 各フィールドタイプで有効な演算子のみ使用可能
+- **kintone関数**: `TODAY()`、`LOGINUSER()`、`THIS_MONTH()` などをサポート
+- **複雑な条件**: `and()`、`or()`、`not()` で組み合わせ
+- **自動補完**: IDEがフィールドとメソッドの候補を提供
+
+### フィールドタイプ別の例
+
+```typescript
+// 文字列フィールドは like/not like をサポート
+会社名.like('*株式会社*')
+会社名.notLike('*test*')
+
+// 数値フィールドは比較演算子をサポート
+売上高.greaterThan(1000000)
+売上高.lessThanOrEqual(5000000)
+
+// ドロップダウンは in/not in を使用
+ステータス.in(['商談中', '受注'])
+ステータス.notIn(['失注', 'キャンセル'])
+
+// 日付フィールドは日付関数をサポート
+契約日.equals(TODAY())
+期限日.lessThan(FROM_TODAY(7, 'DAYS'))
+登録日.in([THIS_MONTH()])
+
+// ユーザーフィールドはユーザー関数をサポート
+担当者.equals(LOGINUSER())
+作成者.in(['user1', 'user2'])
+```
 
 ## ベストプラクティス
 
