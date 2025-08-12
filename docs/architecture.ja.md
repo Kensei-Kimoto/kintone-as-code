@@ -2,6 +2,57 @@
 
 本プロジェクトは Functional Core, Imperative Shell を採用しています。
 
+## 全体アーキテクチャ（俯瞰）
+
+```mermaid
+graph TB
+  subgraph CLI
+    C0[cli.ts]
+    C1[commands/init]
+    C2[commands/export]
+    C3[commands/apply]
+    C4[commands/create]
+  end
+
+  subgraph Core
+    L["core/loader.ts<br/>config/IO"]
+    CFG["core/config.ts<br/>validation"]
+    KC["core/kintone-client.ts<br/>REST Client"]
+    CONV["core/converter.ts<br/>form→schema"]
+    QGEN["core/query-generator.ts<br/>form→query module"]
+  end
+
+  subgraph QueryModule[Query Module]
+    EX[query/expression.ts]
+    F[query/field.ts]
+    B[query/builder-fp.ts]
+    BOO["query/builder.ts<br/>OO facade"]
+    VAL[query/validator.ts]
+    PUB["index.ts<br/>exports"]
+  end
+
+  C0 --> C2
+  C0 --> C3
+  C0 --> C4
+  C0 --> C1
+
+  C2 --> L --> CFG
+  C2 --> KC
+  C2 --> CONV
+  C2 --> QGEN --> B
+  B --> EX
+  B --> F
+  B --> VAL
+  BOO --> B
+
+  C3 --> L --> CFG
+  C3 --> KC
+  C3 --> CONV
+
+  C4 --> L --> CFG
+  C4 --> KC
+```
+
 ## レイヤ構成
 
 - Functional Core（純関数・テスト容易・型安全）
@@ -72,7 +123,7 @@ sequenceDiagram
 flowchart LR
   META[Form Metadata] --> GEN[query-generator.ts]
   GEN --> QF[QueryFields]
-  GEN --> FACADE[createQuery() facade]
+  GEN --> FACADE[createQuery facade]
   FACADE --> FP[builder-fp.ts]
 ```
 

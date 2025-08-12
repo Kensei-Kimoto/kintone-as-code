@@ -164,6 +164,14 @@ export default {
 
 ## コマンド
 
+### ドキュメント索引
+
+- 設定: `docs/config.ja.md`
+- 生成/レコードスキーマ: `docs/converter-and-schemas.ja.md`
+- Export/Apply/Create: `docs/export-apply-create.ja.md`
+- クエリビルダー: `docs/query-builder.ja.md`
+- アーキテクチャ: `docs/architecture.ja.md`
+
 ### init
 
 新しいkintone-as-codeプロジェクトを初期化：
