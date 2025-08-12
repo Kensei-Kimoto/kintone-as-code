@@ -12,12 +12,8 @@ const PasswordAuthSchema = S.Struct({
   password: S.String,
 });
 
-const ApiTokenAuthSchema = S.Struct({
-  baseUrl: S.String,
-  apiToken: S.String,
-});
-
-const AuthConfigSchema = S.Union(PasswordAuthSchema, ApiTokenAuthSchema);
+// APIトークンは非対応化したため、パスワード認証のみ
+const AuthConfigSchema = PasswordAuthSchema;
 const EnvironmentConfigSchema = S.Struct({ auth: AuthConfigSchema });
 const ConfigSchema = S.Struct({
   default: S.String,

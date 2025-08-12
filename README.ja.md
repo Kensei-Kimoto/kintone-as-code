@@ -137,14 +137,14 @@ export default {
   environments: {
     production: {
       auth: {
-        baseUrl: 'https://your-domain.cybozu.com',
+        baseUrl: process.env.KINTONE_BASE_URL!,
         username: process.env.KINTONE_USERNAME,
         password: process.env.KINTONE_PASSWORD,
       },
     },
     development: {
       auth: {
-        baseUrl: 'https://dev.cybozu.com',
+        baseUrl: process.env.KINTONE_BASE_URL!,
         username: process.env.KINTONE_USERNAME,
         password: process.env.KINTONE_PASSWORD,
       },

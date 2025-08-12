@@ -163,17 +163,16 @@ export default {
   environments: {
     production: {
       auth: {
-        baseUrl: 'https://your-domain.cybozu.com',
+        baseUrl: process.env.KINTONE_BASE_URL,
         username: process.env.KINTONE_USERNAME,
         password: process.env.KINTONE_PASSWORD,
-        // or use API token
-        // apiToken: process.env.KINTONE_API_TOKEN,
       },
     },
     development: {
       auth: {
-        baseUrl: 'https://dev.cybozu.com',
-        apiToken: process.env.KINTONE_DEV_API_TOKEN,
+        baseUrl: process.env.KINTONE_BASE_URL,
+        username: process.env.KINTONE_USERNAME,
+        password: process.env.KINTONE_PASSWORD,
       },
     },
   },
