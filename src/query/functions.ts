@@ -22,72 +22,90 @@ export type DateUnit = 'DAYS' | 'WEEKS' | 'MONTHS' | 'YEARS';
 export const TODAY = (): DateFunction => ({
   _tag: 'function',
   _type: 'date',
-  name: 'TODAY'
+  name: 'TODAY',
 });
 
 export const NOW = (): DateFunction => ({
   _tag: 'function',
   _type: 'date',
-  name: 'NOW'
+  name: 'NOW',
 });
 
-export const FROM_TODAY = (
-  days: number, 
-  unit: DateUnit
-): DateFunction => ({
+export const FROM_TODAY = (days: number, unit: DateUnit): DateFunction => ({
   _tag: 'function',
   _type: 'date',
   name: 'FROM_TODAY',
-  args: [days, unit]
+  args: [days, unit],
 });
 
 export const THIS_WEEK = (): DateFunction => ({
   _tag: 'function',
   _type: 'date',
-  name: 'THIS_WEEK'
+  name: 'THIS_WEEK',
 });
 
 export const THIS_MONTH = (): DateFunction => ({
   _tag: 'function',
   _type: 'date',
-  name: 'THIS_MONTH'
+  name: 'THIS_MONTH',
 });
 
 export const THIS_YEAR = (): DateFunction => ({
   _tag: 'function',
   _type: 'date',
-  name: 'THIS_YEAR'
+  name: 'THIS_YEAR',
 });
 
 export const LAST_WEEK = (): DateFunction => ({
   _tag: 'function',
   _type: 'date',
-  name: 'LAST_WEEK'
+  name: 'LAST_WEEK',
 });
 
 export const LAST_MONTH = (): DateFunction => ({
   _tag: 'function',
   _type: 'date',
-  name: 'LAST_MONTH'
+  name: 'LAST_MONTH',
 });
 
 export const LAST_YEAR = (): DateFunction => ({
   _tag: 'function',
   _type: 'date',
-  name: 'LAST_YEAR'
+  name: 'LAST_YEAR',
 });
 
 // ユーザー関数
 export const LOGINUSER = (): UserFunction => ({
   _tag: 'function',
   _type: 'user',
-  name: 'LOGINUSER'
+  name: 'LOGINUSER',
+});
+
+// カスタム関数（将来の拡張や未サポート関数を型安全に表現するためのエスケープハッチ）
+export const customDateFunction = (
+  name: string,
+  ...args: readonly any[]
+): DateFunction => ({
+  _tag: 'function',
+  _type: 'date',
+  name,
+  args,
+});
+
+export const customUserFunction = (
+  name: string,
+  ...args: readonly any[]
+): UserFunction => ({
+  _tag: 'function',
+  _type: 'user',
+  name,
+  args,
 });
 
 // 関数を文字列に変換
 export const formatFunction = (func: KintoneFunction): string => {
   if (func.args && func.args.length > 0) {
-    const formattedArgs = func.args.map(arg => 
+    const formattedArgs = func.args.map((arg) =>
       typeof arg === 'string' ? `"${arg}"` : String(arg)
     );
     return `${func.name}(${formattedArgs.join(', ')})`;

@@ -39,11 +39,6 @@ export const computeDepth = (expr: Expression): number => {
       const childDepths = expr.expressions.map(computeDepth);
       return 1 + (childDepths.length === 0 ? 0 : Math.max(...childDepths));
     }
-    default: {
-      const _exhaustive: never = expr;
-      void _exhaustive;
-      return 1;
-    }
   }
 };
 

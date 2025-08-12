@@ -15,17 +15,21 @@ import { and, or, not } from '../query/expression.js';
 // モック設定
 vi.mock('@kintone/rest-api-client');
 vi.mock('../core/config.js');
+// E2Eで実際のクライアントを使わず、生成物作成を安定化させる
+const mockClient = {
+  app: {
+    getFormFields: vi.fn(),
+  },
+  record: {
+    getRecords: vi.fn(),
+  },
+};
+vi.mock('../core/kintone-client.js', () => ({
+  getKintoneClient: () => mockClient,
+}));
 
 describe('営業管理アプリのE2Eクエリビルダーテスト', () => {
   const SALES_APP_ID = '123';
-  const mockClient = {
-    app: {
-      getFormFields: vi.fn(),
-    },
-    record: {
-      getRecords: vi.fn(),
-    },
-  };
 
   const mockFormFields = {
     properties: {
@@ -256,7 +260,8 @@ describe('営業管理アプリのE2Eクエリビルダーテスト', () => {
       // 100個のフィールドを生成
       for (let i = 0; i < 100; i++) {
         largeFormFields.properties[`field_${i}`] = {
-          type: i % 3 === 0 ? 'NUMBER' : i % 3 === 1 ? 'DATE' : 'SINGLE_LINE_TEXT',
+          type:
+            i % 3 === 0 ? 'NUMBER' : i % 3 === 1 ? 'DATE' : 'SINGLE_LINE_TEXT',
           code: `field_${i}`,
           label: `Field ${i}`,
         };
@@ -312,12 +317,17 @@ describe('営業管理アプリのE2Eクエリビルダーテスト', () => {
         withQuery: true,
       });
 
-      const content = await fs.readFile('apps/unsupported-app.query.ts', 'utf-8');
-      
+      const content = await fs.readFile(
+        'apps/unsupported-app.query.ts',
+        'utf-8'
+      );
+
       // サポートされていないフィールドはコメントアウトされる
       expect(content).toContain('// 添付ファイル: FILE type is not supported');
-      expect(content).toContain('// サブテーブル: SUBTABLE type is not supported');
-      
+      expect(content).toContain(
+        '// サブテーブル: SUBTABLE type is not supported'
+      );
+
       // 通常のフィールドは生成される
       expect(content).toContain('通常フィールド: createStringField');
     });
@@ -326,22 +336,15 @@ describe('営業管理アプリのE2Eクエリビルダーテスト', () => {
 
 describe('回帰テスト', () => {
   it('既存のExportコマンドの動作が維持されている', async () => {
-    const mockClient = {
-      app: {
-        getFormFields: vi.fn().mockResolvedValue({
-          properties: {
-            テスト: {
-              type: 'SINGLE_LINE_TEXT',
-              code: 'テスト',
-              label: 'テスト',
-            },
-          },
-        }),
+    mockClient.app.getFormFields.mockResolvedValue({
+      properties: {
+        テスト: {
+          type: 'SINGLE_LINE_TEXT',
+          code: 'テスト',
+          label: 'テスト',
+        },
       },
-    };
-
-    // @ts-ignore
-    KintoneRestAPIClient.mockImplementation(() => mockClient);
+    });
 
     // withQuery: false で実行
     await exportCommand({
@@ -355,7 +358,9 @@ describe('回帰テスト', () => {
     await expect(fs.access('apps/no-query-app.query.ts')).rejects.toThrow();
 
     // スキーマファイルは生成されている
-    await expect(fs.access('apps/no-query-app.schema.ts')).resolves.toBeUndefined();
+    await expect(
+      fs.access('apps/no-query-app.schema.ts')
+    ).resolves.toBeUndefined();
     await expect(
       fs.access('apps/no-query-app.record-schema.ts')
     ).resolves.toBeUndefined();

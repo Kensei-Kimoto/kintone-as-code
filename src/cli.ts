@@ -28,6 +28,8 @@ type ExportArgs = {
   output?: string;
   'with-record-schema': boolean;
   'with-query': boolean;
+  'include-related'?: boolean;
+  'include-subtable'?: boolean;
 };
 type ApplyArgs = {
   'app-id'?: string;
@@ -99,6 +101,18 @@ yargs(hideBin(process.argv))
         default: true,
         description: 'Generate query builder file (default: true)',
       },
+      'include-related': {
+        type: 'boolean',
+        default: false,
+        description:
+          'Include related record fields as dot-notation (default: false)',
+      },
+      'include-subtable': {
+        type: 'boolean',
+        default: false,
+        description:
+          'Include subtable child fields (in/not in only) (default: false)',
+      },
     },
     (argv: any) => {
       const a = argv as ExportArgs;
@@ -118,6 +132,8 @@ yargs(hideBin(process.argv))
         output: a.output,
         withRecordSchema: normalizedWithRecordSchema,
         withQuery: normalizedWithQuery,
+        includeRelated: a['include-related'] ?? false,
+        includeSubtable: a['include-subtable'] ?? false,
       });
     }
   )

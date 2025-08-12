@@ -131,3 +131,4 @@ flowchart LR
 
 - 既存のOOメソッドチェーンはそのまま利用可能
 - 新規コードでは合成性とテスト容易性の観点からFP APIの利用を推奨
+- Effect-TS統合の高度なサンプル（例: `buildQueryEffect`, `validateExpression` のEffect版）は現時点では未実装です（将来計画）。

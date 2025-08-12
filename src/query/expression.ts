@@ -1,15 +1,21 @@
 // 演算子の型定義（kintoneでサポートされる演算子）
-export type Operator = 
-  | '=' | '!=' 
-  | '>' | '<' | '>=' | '<='
-  | 'in' | 'not in'
-  | 'like' | 'not like';
+export type Operator =
+  | '='
+  | '!='
+  | '>'
+  | '<'
+  | '>='
+  | '<='
+  | 'in'
+  | 'not in'
+  | 'like'
+  | 'not like';
 
 // フィールド値の型定義
-export type FieldValue = 
-  | string 
-  | number 
-  | boolean 
+export type FieldValue =
+  | string
+  | number
+  | boolean
   | null
   | undefined
   | ReadonlyArray<string | number>;
@@ -40,12 +46,13 @@ export const condition = (
   field: string,
   operator: Operator,
   value: FieldValue
-): Expression => Object.freeze({
-  _tag: 'condition' as const,
-  field,
-  operator,
-  value,
-});
+): Expression =>
+  Object.freeze({
+    _tag: 'condition' as const,
+    field,
+    operator,
+    value,
+  });
 
 // 文字列のエスケープ処理
 const escapeString = (str: string): string => {
@@ -58,36 +65,36 @@ const formatValue = (value: FieldValue): string => {
   if (value === null || value === undefined) {
     return 'null';
   }
-  
+
   // 関数の場合（TODAY()、LOGINUSER()など）
-  if (typeof value === 'string' && (
-    value.endsWith('()') || 
-    value.includes('(') && value.includes(')')
-  )) {
+  if (
+    typeof value === 'string' &&
+    (value.endsWith('()') || (value.includes('(') && value.includes(')')))
+  ) {
     // 関数呼び出しの場合はそのまま返す
     return value;
   }
-  
+
   // 文字列処理
   if (typeof value === 'string') {
     return `"${escapeString(value)}"`;
   }
-  
+
   // 配列処理（IN演算子用）
   if (Array.isArray(value)) {
-    const formatted = value.map(v => {
+    const formatted = value.map((v) => {
       // 配列内の関数もチェック
-      if (typeof v === 'string' && (
-        v.endsWith('()') || 
-        v.includes('(') && v.includes(')')
-      )) {
+      if (
+        typeof v === 'string' &&
+        (v.endsWith('()') || (v.includes('(') && v.includes(')')))
+      ) {
         return v;
       }
       return typeof v === 'string' ? `"${escapeString(v)}"` : String(v);
     });
     return `(${formatted.join(', ')})`;
   }
-  
+
   // 数値・真偽値処理
   return String(value);
 };
@@ -100,12 +107,12 @@ export const and = (...expressions: Expression[]): Expression => {
   if (expressions.length === 1) {
     return expressions[0]!;
   }
-  
+
   // ネストしたANDをフラット化
-  const flattened = expressions.flatMap(expr => 
+  const flattened = expressions.flatMap((expr) =>
     expr._tag === 'and' ? expr.expressions : [expr]
   );
-  
+
   return {
     _tag: 'and',
     expressions: flattened,
@@ -120,12 +127,12 @@ export const or = (...expressions: Expression[]): Expression => {
   if (expressions.length === 1) {
     return expressions[0]!;
   }
-  
+
   // ネストしたORをフラット化
-  const flattened = expressions.flatMap(expr => 
+  const flattened = expressions.flatMap((expr) =>
     expr._tag === 'or' ? expr.expressions : [expr]
   );
-  
+
   return {
     _tag: 'or',
     expressions: flattened,
@@ -138,9 +145,11 @@ export const not = (expression: Expression): Expression => ({
   expression,
 });
 
+// 生クエリを挿入するエスケープハッチ
+// 括弧制御は親側に委譲される（and/or/notのルールに従う）
 // 文字列変換（括弧最適化付き）
 export const toString = (
-  expr: Expression, 
+  expr: Expression,
   parentOp?: 'and' | 'or' | 'not'
 ): string => {
   switch (expr._tag) {
@@ -148,27 +157,27 @@ export const toString = (
       const formattedValue = formatValue(expr.value);
       return `${expr.field} ${expr.operator} ${formattedValue}`;
     }
-    
+
     case 'and': {
-      const parts = expr.expressions.map(e => toString(e, 'and'));
+      const parts = expr.expressions.map((e) => toString(e, 'and'));
       const result = parts.join(' and ');
       // トップレベル（parentOpなし）または異なる演算子の場合は括弧を付ける
       return !parentOp || parentOp !== 'and' ? `(${result})` : result;
     }
-    
+
     case 'or': {
-      const parts = expr.expressions.map(e => toString(e, 'or'));
+      const parts = expr.expressions.map((e) => toString(e, 'or'));
       const result = parts.join(' or ');
       // トップレベル（parentOpなし）または異なる演算子の場合は括弧を付ける
       return !parentOp || parentOp !== 'or' ? `(${result})` : result;
     }
-    
+
     case 'not': {
       // NOTの中身は常に括弧で囲む（kintoneの仕様）
       const inner = toString(expr.expression, 'not');
       return `not (${inner})`;
     }
-    
+
     default:
       // 型の網羅性チェック
       const _exhaustive: never = expr;

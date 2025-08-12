@@ -43,7 +43,17 @@ kintone-as-code init
 ### 2. 既存アプリのエクスポート
 
 ```bash
+# 基本（デフォルトで query / record-schema も生成）
 kintone-as-code export --app-id 123 --name customer-app
+
+# 生成を抑止（後方互換の --with-* も可）
+kintone-as-code export --app-id 123 --name customer-app --no-query
+kintone-as-code export --app-id 123 --name customer-app --no-record-schema
+
+# 関連/サブテーブルの限定公開（in/not in のみ）
+kintone-as-code export --app-id 123 --name customer-app \
+  --include-related \
+  --include-subtable
 ```
 
 以下のファイルが生成されます：
@@ -51,6 +61,8 @@ kintone-as-code export --app-id 123 --name customer-app
 - `apps/customer-app.schema.ts` - 完全に型付けされたフィールド定義
 - `apps/customer-app.record-schema.ts` - 静的な型安全レコードスキーマ（そのままコピペで利用可能）
 - `apps/customer-app.query.ts` - kintone API用の型安全なクエリビルダー（デフォルトで生成）
+  - `--include-related` 指定時は `REFERENCE_TABLE` の `displayFields` を `createTableSubField('親.子')` で最小API公開（`in/not in` のみ）
+  - `--include-subtable` 指定時はサブテーブル子フィールドを同様に最小APIで公開
 
 ### 3. アプリスキーマの定義
 
@@ -379,6 +391,12 @@ const records = await client.record.getRecords({
   query: query,
 });
 ```
+
+#### 補助メソッド
+
+- 文字列: `contains()/startsWith()/endsWith()`
+- 数値/日付/日時/時間: `between(min, max)`
+- 関数（未サポート名）: `customDateFunction(name, ...args)` / `customUserFunction(name, ...args)`
 
 ### クエリビルダーの機能
 

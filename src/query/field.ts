@@ -1,4 +1,4 @@
-import { Expression, condition } from './expression.js';
+import { Expression, condition, and } from './expression.js';
 import { DateFunction, UserFunction, formatFunction } from './functions.js';
 
 // toString関数を再エクスポート
@@ -61,6 +61,15 @@ export const createStringField = (code: string) => {
     notLike(pattern: string): Expression {
       return condition(code, 'not like', pattern);
     },
+    contains(substr: string): Expression {
+      return condition(code, 'like', `*${substr}*`);
+    },
+    startsWith(prefix: string): Expression {
+      return condition(code, 'like', `${prefix}*`);
+    },
+    endsWith(suffix: string): Expression {
+      return condition(code, 'like', `*${suffix}`);
+    },
   });
 };
 
@@ -79,6 +88,12 @@ export const createNumberField = (code: string) => {
     },
     lessThanOrEqual(value: number): Expression {
       return condition(code, '<=', value);
+    },
+    between(minInclusive: number, maxInclusive: number): Expression {
+      return and(
+        condition(code, '>=', minInclusive),
+        condition(code, '<=', maxInclusive)
+      );
     },
   });
 };
@@ -133,6 +148,12 @@ export const createDateField = (code: string) => {
     lessThanOrEqual(value: DateValue): Expression {
       return condition(code, '<=', formatFieldValue(value));
     },
+    between(minInclusive: DateValue, maxInclusive: DateValue): Expression {
+      return and(
+        condition(code, '>=', formatFieldValue(minInclusive)),
+        condition(code, '<=', formatFieldValue(maxInclusive))
+      );
+    },
   });
 };
 
@@ -152,6 +173,12 @@ export const createDateTimeField = (code: string) => {
     lessThanOrEqual(value: DateValue): Expression {
       return condition(code, '<=', formatFieldValue(value));
     },
+    between(minInclusive: DateValue, maxInclusive: DateValue): Expression {
+      return and(
+        condition(code, '>=', formatFieldValue(minInclusive)),
+        condition(code, '<=', formatFieldValue(maxInclusive))
+      );
+    },
   });
 };
 
@@ -170,6 +197,12 @@ export const createTimeField = (code: string) => {
     },
     lessThanOrEqual(value: string): Expression {
       return condition(code, '<=', value);
+    },
+    between(minInclusive: string, maxInclusive: string): Expression {
+      return and(
+        condition(code, '>=', minInclusive),
+        condition(code, '<=', maxInclusive)
+      );
     },
   });
 };
@@ -200,6 +233,23 @@ export const createRadioButtonField = <T extends readonly string[]>(
     },
     notIn(values: T[number][]): Expression {
       return condition(code, 'not in', values);
+    },
+  } as const;
+  return Object.freeze(obj);
+};
+
+// サブテーブル子フィールド用（制約: in/not in のみ）
+export const createTableSubField = (code: string) => {
+  const obj = {
+    in(values: ReadonlyArray<string | number>): Expression {
+      return condition(code, 'in', values as unknown as (string | number)[]);
+    },
+    notIn(values: ReadonlyArray<string | number>): Expression {
+      return condition(
+        code,
+        'not in',
+        values as unknown as (string | number)[]
+      );
     },
   } as const;
   return Object.freeze(obj);

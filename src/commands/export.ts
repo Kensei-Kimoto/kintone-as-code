@@ -15,6 +15,8 @@ interface ExportOptions {
   output?: string | undefined;
   withRecordSchema?: boolean;
   withQuery?: boolean;
+  includeRelated: boolean;
+  includeSubtable: boolean;
 }
 
 // Convert name to constant format (e.g., "my-app" -> "MY_APP")
@@ -125,7 +127,10 @@ export const exportCommand = async (options: ExportOptions) => {
 
     // Generate query builder if requested
     if (options.withQuery) {
-      const queryContent = generateQueryBuilder(formFields, options.name);
+      const queryContent = generateQueryBuilder(formFields, options.name, {
+        includeSubtable: options.includeSubtable,
+        includeRelated: options.includeRelated,
+      });
       const queryPath = path.join(outputDir, `${options.name}.query.ts`);
       await fs.writeFile(queryPath, queryContent, 'utf-8');
       console.log(`Successfully exported query builder to ${queryPath}`);

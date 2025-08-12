@@ -29,6 +29,7 @@ export {
   createUserField,
   createOrgField,
   createGroupField,
+  createTableSubField,
 } from './field.js';
 
 // Date and user function exports
@@ -45,6 +46,8 @@ export {
   LAST_MONTH,
   LAST_YEAR,
   LOGINUSER,
+  customDateFunction,
+  customUserFunction,
 } from './functions.js';
 
 // Query builder class

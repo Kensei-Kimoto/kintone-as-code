@@ -138,7 +138,9 @@ describe('OR演算子', () => {
     const cond1 = condition('ステータス', '=', '商談中');
     const cond2 = condition('ステータス', '=', '受注');
     const expr = or(cond1, cond2);
-    expect(toString(expr)).toBe('(ステータス = "商談中" or ステータス = "受注")');
+    expect(toString(expr)).toBe(
+      '(ステータス = "商談中" or ステータス = "受注")'
+    );
   });
 
   it('3つ以上の条件をORで結合できる', () => {
@@ -170,7 +172,9 @@ describe('NOT演算子', () => {
     const cond2 = condition('売上高', '<', 5000000);
     const andExpr = and(cond1, cond2);
     const expr = not(andExpr);
-    expect(toString(expr)).toBe('not ((売上高 > 1000000 and 売上高 < 5000000))');
+    expect(toString(expr)).toBe(
+      'not ((売上高 > 1000000 and 売上高 < 5000000))'
+    );
   });
 });
 
@@ -179,10 +183,10 @@ describe('ネスト条件', () => {
     const highPriority = condition('優先度', '=', '高');
     const urgent = condition('緊急フラグ', '=', true);
     const important = and(highPriority, urgent);
-    
+
     const assigned = condition('担当者', '=', 'LOGINUSER()');
     const expr = or(important, assigned);
-    
+
     expect(toString(expr)).toBe(
       '((優先度 = "高" and 緊急フラグ = true) or 担当者 = LOGINUSER())'
     );
@@ -192,10 +196,10 @@ describe('ネスト条件', () => {
     const status1 = condition('ステータス', '=', '商談中');
     const status2 = condition('ステータス', '=', '受注');
     const activeStatuses = or(status1, status2);
-    
+
     const highValue = condition('売上高', '>', 10000000);
     const expr = and(activeStatuses, highValue);
-    
+
     expect(toString(expr)).toBe(
       '((ステータス = "商談中" or ステータス = "受注") and 売上高 > 10000000)'
     );
@@ -208,14 +212,32 @@ describe('ネスト条件', () => {
     const d = condition('D', '=', '4');
     const e = condition('E', '=', '5');
     const f = condition('F', '=', '6');
-    
-    const expr = or(
-      and(a, or(b, c)),
-      and(d, e, not(f))
-    );
-    
+
+    const expr = or(and(a, or(b, c)), and(d, e, not(f)));
+
     expect(toString(expr)).toBe(
       '((A = "1" and (B = "2" or C = "3")) or (D = "4" and E = "5" and not (F = "6")))'
     );
+  });
+});
+
+describe('関数や比較の等価表現', () => {
+  it('登録日 >= NOW() を condition で表現できる', () => {
+    const expr = condition('登録日', '>=', 'NOW()');
+    expect(toString(expr)).toBe('登録日 >= NOW()');
+  });
+
+  it('ANDの右項を数値比較で置き換え', () => {
+    const left = condition('会社名', 'like', '*サイボウズ*');
+    const right = condition('売上高', '>', 1000000);
+    const expr = and(left, right);
+    expect(toString(expr)).toBe(
+      '(会社名 like "*サイボウズ*" and 売上高 > 1000000)'
+    );
+  });
+
+  it('NOT (ステータス in ("完了")) を型安全APIで表現', () => {
+    const expr = not(condition('ステータス', 'in', ['完了']));
+    expect(toString(expr)).toBe('not (ステータス in ("完了"))');
   });
 });
