@@ -6,6 +6,7 @@ import {
   generateStaticRecordSchemaCode,
 } from '../core/converter.js';
 import { loadConfig } from '../core/config.js';
+import { generateQueryBuilder } from '../core/query-generator.js';
 
 interface ExportOptions {
   appId: string;
@@ -13,11 +14,16 @@ interface ExportOptions {
   env?: string | undefined;
   output?: string | undefined;
   withRecordSchema?: boolean;
+  withQuery?: boolean;
 }
 
 // Convert name to constant format (e.g., "my-app" -> "MY_APP")
 const toConstantName = (name: string): string => {
-  return name.toUpperCase().replace(/-/g, '_');
+  // Convert to CONSTANT_CASE with enhanced handling
+  return name
+    .replace(/([a-z])([A-Z])/g, '$1_$2')
+    .replace(/[\s-]+/g, '_')
+    .toUpperCase();
 };
 
 // Update or create app-ids.ts file
@@ -70,6 +76,7 @@ ${after}`;
   return constantName;
 };
 
+// Export command main function - handles schema export from kintone apps
 export const exportCommand = async (options: ExportOptions) => {
   try {
     const config = await loadConfig();
@@ -114,6 +121,14 @@ export const exportCommand = async (options: ExportOptions) => {
       );
       await fs.writeFile(recordSchemaPath, recordSchemaContent);
       console.log(`Successfully exported record schema to ${recordSchemaPath}`);
+    }
+
+    // Generate query builder if requested
+    if (options.withQuery) {
+      const queryContent = generateQueryBuilder(formFields, options.name);
+      const queryPath = path.join(outputDir, `${options.name}.query.ts`);
+      await fs.writeFile(queryPath, queryContent, 'utf-8');
+      console.log(`Successfully exported query builder to ${queryPath}`);
     }
 
     // Note: Form schema (Effect-TS) generation is not performed here

@@ -10,12 +10,11 @@ describe('convertKintoneFieldsToSchema', () => {
   it('should convert kintone fields to schema code successfully (new API)', () => {
     const schemaCode = convertKintoneFieldsToSchema(mockFormFieldsResponse);
 
-    // 新APIのコード生成を確認（値と型の明確な分離）
+    // コード生成を確認（READMEスタイル: 個別フィールド + appFieldsConfig）
     expect(schemaCode).toContain("from 'kintone-effect-schema'");
-    expect(schemaCode).toContain('export const formProperties');
-    expect(schemaCode).toContain('export const FormPropertiesSchema');
+    expect(schemaCode).toContain('export const appFieldsConfig');
     expect(schemaCode).toContain('defineAppSchema');
-    expect(schemaCode).toContain('fieldsConfig: formProperties');
+    expect(schemaCode).toContain('fieldsConfig: appFieldsConfig');
     // フィールドコードが含まれていること（日本語/英数字）
     expect(schemaCode).toContain('レコード番号');
     expect(schemaCode).toContain('testField');
@@ -70,10 +69,9 @@ describe('convertKintoneFieldsToSchema', () => {
     };
 
     const schemaCode = convertKintoneFieldsToSchema(fieldsWithTypes);
-    
-    // 新APIでは個々の Field 定数は生成しないため、
-    // formProperties（値）にフィールドコードが含まれることを確認
-    expect(schemaCode).toContain('formProperties');
+
+    // READMEスタイルでは appFieldsConfig にフィールドコードが含まれる
+    expect(schemaCode).toContain('appFieldsConfig');
     expect(schemaCode).toContain('text');
     expect(schemaCode).toContain('number');
     expect(schemaCode).toContain('radio');
@@ -108,9 +106,9 @@ describe('convertKintoneFieldsToSchema', () => {
     };
 
     const schemaCode = convertKintoneFieldsToSchema(fieldsWithSubtable);
-    
-    // サブテーブルの存在を formProperties 側で確認
-    expect(schemaCode).toContain('formProperties');
+
+    // サブテーブルの存在を appFieldsConfig 側で確認
+    expect(schemaCode).toContain('appFieldsConfig');
     expect(schemaCode).toContain('SUBTABLE');
     expect(schemaCode).toContain('subfield1');
   });
@@ -127,7 +125,9 @@ describe('convertKintoneFieldsToSchema', () => {
       revision: '1',
     };
 
-    expect(() => convertKintoneFieldsToSchema(invalidData)).toThrow('Schema validation failed');
+    expect(() => convertKintoneFieldsToSchema(invalidData)).toThrow(
+      'Schema validation failed'
+    );
   });
 
   it('should handle empty properties', () => {
@@ -137,17 +137,16 @@ describe('convertKintoneFieldsToSchema', () => {
     };
 
     const schemaCode = convertKintoneFieldsToSchema(emptyFields);
-    // 新APIでは値・型のモジュールと defineAppSchema の構成
-    expect(schemaCode).toContain('export const formProperties');
-    expect(schemaCode).toContain('export const FormPropertiesSchema');
+    // READMEスタイル: appFieldsConfig と defineAppSchema の構成
+    expect(schemaCode).toContain('export const appFieldsConfig');
     expect(schemaCode).toContain('defineAppSchema');
-    expect(schemaCode).toContain('fieldsConfig: formProperties');
+    expect(schemaCode).toContain('fieldsConfig: appFieldsConfig');
   });
 
   it('should preserve field names with special characters', () => {
     const fieldsWithSpecialNames = {
       properties: {
-        'field_with_underscore': {
+        field_with_underscore: {
           type: 'SINGLE_LINE_TEXT',
           code: 'field_with_underscore',
           label: 'Field with underscore',
@@ -165,7 +164,7 @@ describe('convertKintoneFieldsToSchema', () => {
     };
 
     const schemaCode = convertKintoneFieldsToSchema(fieldsWithSpecialNames);
-    
+
     // 変数名ではなく、プロパティ名として含まれること
     expect(schemaCode).toContain('field_with_underscore');
   });

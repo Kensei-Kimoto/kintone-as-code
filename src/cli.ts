@@ -27,6 +27,7 @@ type ExportArgs = {
   env?: string;
   output?: string;
   'with-record-schema': boolean;
+  'with-query': boolean;
 };
 type ApplyArgs = {
   'app-id'?: string;
@@ -83,6 +84,11 @@ yargs(hideBin(process.argv))
         default: true,
         description: 'Generate record schema file (default: true)',
       },
+      'with-query': {
+        type: 'boolean',
+        default: true,
+        description: 'Generate query builder file (default: true)',
+      },
     },
     (argv: any) => {
       const a = argv as ExportArgs;
@@ -92,6 +98,7 @@ yargs(hideBin(process.argv))
         env: a.env,
         output: a.output,
         withRecordSchema: a['with-record-schema'],
+        withQuery: a['with-query'],
       });
     }
   )
