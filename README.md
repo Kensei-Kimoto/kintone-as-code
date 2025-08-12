@@ -367,7 +367,10 @@ import {
 
 const query2 = build(
   withLimit(100)(
-    appendOrder('売上高', 'desc')(
+    appendOrder(
+      '売上高',
+      'desc'
+    )(
       setWhere(
         and(
           会社名.like('*サイボウズ*'),
