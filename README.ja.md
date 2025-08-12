@@ -2,6 +2,13 @@
 
 kintoneアプリの設定をコードで管理し、Effect-TSによる型安全性を実現するCLIツールです。
 
+## アーキテクチャ（要約）
+
+- Functional Core, Imperative Shell を採用
+- Coreは純関数（`src/query/*`）: 式、フィールド、ビルダー（FP）、バリデーション
+- Shellは副作用（`src/cli.ts`, `src/commands/*`, 生成器）
+- メソッドチェーンのOOファサードは互換維持のために存在し、内部はFPコア
+
 ## 特徴
 
 - 🔒 **型安全** - kintone-effect-schemaによる完全なTypeScriptサポート

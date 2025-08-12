@@ -1,12 +1,18 @@
 # kintone-as-code
 
-[![npm version](https://badge.fury.io/js/kintone-as-code.svg)](https://badge.fury.io/js/kintone-as-code)
+ [![npm version](https://badge.fury.io/js/kintone-as-code.svg)](https://badge.fury.io/js/kintone-as-code)
 [![CI](https://github.com/kimotokensei/kintone-as-code/actions/workflows/ci.yml/badge.svg)](https://github.com/kimotokensei/kintone-as-code/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 [日本語](README.ja.md)
 
 Manage kintone app configurations as code with type safety using Effect-TS.
+
+## Architecture (Summary)
+- Functional Core, Imperative Shell
+- Core (pure functions in `src/query/*`): expressions, fields, FP builder, validation
+- Shell (side effects): CLI/commands and code generator
+- OO method-chaining facade remains for compatibility; internally backed by FP core
 
 ## Features
 
