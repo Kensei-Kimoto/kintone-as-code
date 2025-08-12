@@ -12,7 +12,7 @@ export {
   and,
   or,
   not,
-  toString
+  toString,
 } from './expression.js';
 
 // Field factory exports
@@ -28,7 +28,7 @@ export {
   createDateTimeField,
   createUserField,
   createOrgField,
-  createGroupField
+  createGroupField,
 } from './field.js';
 
 // Date and user function exports
@@ -44,11 +44,23 @@ export {
   LAST_WEEK,
   LAST_MONTH,
   LAST_YEAR,
-  LOGINUSER
+  LOGINUSER,
 } from './functions.js';
 
 // Query builder class
 export { QueryBuilder } from './builder.js';
+
+// Functional Query Builder (FP API)
+export {
+  type QueryState,
+  createQueryState,
+  where as setWhere,
+  orderBy as appendOrder,
+  limit as withLimit,
+  offset as withOffset,
+  setValidationOptions,
+  build,
+} from './builder-fp.js';
 
 // Validator exports
 export {
