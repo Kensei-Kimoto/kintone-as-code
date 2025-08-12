@@ -30,6 +30,8 @@ npm install -g kintone-as-code
 
 ## クイックスタート
 
+より丁寧な手順は `docs/getting-started.ja.md` を参照してください。以下は最小手順です。
+
 ### 1. プロジェクトの初期化
 
 ```bash
