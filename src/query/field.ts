@@ -5,7 +5,7 @@ import { DateFunction, UserFunction, formatFunction } from './functions.js';
 export { toString } from './expression.js';
 
 // フィールドタイプの列挙
-export type FieldType = 
+export type FieldType =
   | 'SINGLE_LINE_TEXT'
   | 'MULTI_LINE_TEXT'
   | 'NUMBER'
@@ -35,279 +35,172 @@ const formatFieldValue = (value: any): any => {
   return value;
 };
 
-// フィールド定義インターフェース
-interface FieldDefinition {
-  readonly code: string;
-  readonly type: FieldType;
-}
-
-// 基本フィールドクラス（改善版）
-abstract class BaseField<T> {
-  protected readonly definition: FieldDefinition;
-  
-  constructor(code: string, type: FieldType) {
-    this.definition = Object.freeze({ code, type });
-  }
-  
-  get code(): string {
-    return this.definition.code;
-  }
-  
-  get type(): FieldType {
-    return this.definition.type;
-  }
-  
+// 汎用の等価系（不変オブジェクトにメソッドを実装）
+const baseOps = <T>(code: string) => ({
   equals(value: T): Expression {
-    return condition(this.code, '=', formatFieldValue(value));
-  }
-  
+    return condition(code, '=', formatFieldValue(value));
+  },
   notEquals(value: T): Expression {
-    return condition(this.code, '!=', formatFieldValue(value));
-  }
-  
+    return condition(code, '!=', formatFieldValue(value));
+  },
   in(values: T[]): Expression {
-    return condition(this.code, 'in', values.map(formatFieldValue));
-  }
-  
+    return condition(code, 'in', values.map(formatFieldValue));
+  },
   notIn(values: T[]): Expression {
-    return condition(this.code, 'not in', values.map(formatFieldValue));
-  }
-}
+    return condition(code, 'not in', values.map(formatFieldValue));
+  },
+});
 
-// 文字列フィールド（改善版）
-class StringField extends BaseField<string> {
-  constructor(code: string) {
-    super(code, 'SINGLE_LINE_TEXT');
-  }
-  
-  like(pattern: string): Expression {
-    return condition(this.code, 'like', pattern);
-  }
-  
-  notLike(pattern: string): Expression {
-    return condition(this.code, 'not like', pattern);
-  }
-}
-
-// 数値フィールド（改善版）
-class NumberField extends BaseField<number> {
-  constructor(code: string) {
-    super(code, 'NUMBER');
-  }
-  
-  greaterThan(value: number): Expression {
-    return condition(this.code, '>', value);
-  }
-  
-  lessThan(value: number): Expression {
-    return condition(this.code, '<', value);
-  }
-  
-  greaterThanOrEqual(value: number): Expression {
-    return condition(this.code, '>=', value);
-  }
-  
-  lessThanOrEqual(value: number): Expression {
-    return condition(this.code, '<=', value);
-  }
-}
-
-// ドロップダウンフィールド（equals使えない）
-class DropdownField<T extends readonly string[]> {
-  constructor(
-    private readonly code: string,
-    public readonly options: T
-  ) {}
-  
-  in(values: T[number][]): Expression {
-    return condition(this.code, 'in', values);
-  }
-  
-  notIn(values: T[number][]): Expression {
-    return condition(this.code, 'not in', values);
-  }
-}
-
-// チェックボックスフィールド
-class CheckboxField<T extends readonly string[]> {
-  constructor(
-    private readonly code: string,
-    public readonly options: T
-  ) {}
-  
-  in(values: T[number][]): Expression {
-    return condition(this.code, 'in', values);
-  }
-  
-  notIn(values: T[number][]): Expression {
-    return condition(this.code, 'not in', values);
-  }
-}
-
-// 日付フィールド（改善版）
-class DateField extends BaseField<DateValue> {
-  constructor(code: string) {
-    super(code, 'DATE');
-  }
-  
-  greaterThan(value: DateValue): Expression {
-    return condition(this.code, '>', formatFieldValue(value));
-  }
-  
-  lessThan(value: DateValue): Expression {
-    return condition(this.code, '<', formatFieldValue(value));
-  }
-  
-  greaterThanOrEqual(value: DateValue): Expression {
-    return condition(this.code, '>=', formatFieldValue(value));
-  }
-  
-  lessThanOrEqual(value: DateValue): Expression {
-    return condition(this.code, '<=', formatFieldValue(value));
-  }
-}
-
-// ユーザーフィールド（改善版）
-class UserField extends BaseField<UserValue> {
-  constructor(code: string) {
-    super(code, 'USER_SELECT');
-  }
-}
-
-// 組織フィールド
-class OrgField extends BaseField<string> {
-  constructor(code: string) {
-    super(code, 'ORGANIZATION_SELECT');
-  }
-}
-
-// グループフィールド  
-class GroupField extends BaseField<string> {
-  constructor(code: string) {
-    super(code, 'GROUP_SELECT');
-  }
-}
-
-// 時間フィールド
-class TimeField extends BaseField<string> {
-  constructor(code: string) {
-    super(code, 'TIME');
-  }
-  
-  greaterThan(value: string): Expression {
-    return condition(this.code, '>', value);
-  }
-  
-  lessThan(value: string): Expression {
-    return condition(this.code, '<', value);
-  }
-  
-  greaterThanOrEqual(value: string): Expression {
-    return condition(this.code, '>=', value);
-  }
-  
-  lessThanOrEqual(value: string): Expression {
-    return condition(this.code, '<=', value);
-  }
-}
-
-// 日時フィールド
-class DateTimeField extends BaseField<DateValue> {
-  constructor(code: string) {
-    super(code, 'DATETIME');
-  }
-  
-  greaterThan(value: DateValue): Expression {
-    return condition(this.code, '>', formatFieldValue(value));
-  }
-  
-  lessThan(value: DateValue): Expression {
-    return condition(this.code, '<', formatFieldValue(value));
-  }
-  
-  greaterThanOrEqual(value: DateValue): Expression {
-    return condition(this.code, '>=', formatFieldValue(value));
-  }
-  
-  lessThanOrEqual(value: DateValue): Expression {
-    return condition(this.code, '<=', formatFieldValue(value));
-  }
-}
-
-// ラジオボタンフィールド
-class RadioButtonField<T extends readonly string[]> {
-  constructor(
-    private readonly code: string,
-    public readonly options: T
-  ) {}
-  
-  equals(value: T[number]): Expression {
-    return condition(this.code, '=', value);
-  }
-  
-  notEquals(value: T[number]): Expression {
-    return condition(this.code, '!=', value);
-  }
-  
-  in(values: T[number][]): Expression {
-    return condition(this.code, 'in', values);
-  }
-  
-  notIn(values: T[number][]): Expression {
-    return condition(this.code, 'not in', values);
-  }
-}
-
-// ファクトリ関数
-export const createStringField = (code: string): StringField => {
-  return new StringField(code);
+// 文字列フィールド（like/not like を追加）
+export const createStringField = (code: string) => {
+  return Object.freeze({
+    ...baseOps<string>(code),
+    like(pattern: string): Expression {
+      return condition(code, 'like', pattern);
+    },
+    notLike(pattern: string): Expression {
+      return condition(code, 'not like', pattern);
+    },
+  });
 };
 
-export const createNumberField = (code: string): NumberField => {
-  return new NumberField(code);
+// 数値フィールド（比較演算子）
+export const createNumberField = (code: string) => {
+  return Object.freeze({
+    ...baseOps<number>(code),
+    greaterThan(value: number): Expression {
+      return condition(code, '>', value);
+    },
+    lessThan(value: number): Expression {
+      return condition(code, '<', value);
+    },
+    greaterThanOrEqual(value: number): Expression {
+      return condition(code, '>=', value);
+    },
+    lessThanOrEqual(value: number): Expression {
+      return condition(code, '<=', value);
+    },
+  });
 };
 
+// ドロップダウン（in/not in のみ）
 export const createDropdownField = <T extends readonly string[]>(
   code: string,
   options: T
-): DropdownField<T> => {
-  return new DropdownField(code, options);
+) => {
+  const obj = {
+    options,
+    in(values: T[number][]): Expression {
+      return condition(code, 'in', values);
+    },
+    notIn(values: T[number][]): Expression {
+      return condition(code, 'not in', values);
+    },
+  } as const;
+  return Object.freeze(obj);
 };
 
+// チェックボックス（in/not in のみ）
 export const createCheckboxField = <T extends readonly string[]>(
   code: string,
   options: T
-): CheckboxField<T> => {
-  return new CheckboxField(code, options);
+) => {
+  const obj = {
+    options,
+    in(values: T[number][]): Expression {
+      return condition(code, 'in', values);
+    },
+    notIn(values: T[number][]): Expression {
+      return condition(code, 'not in', values);
+    },
+  } as const;
+  return Object.freeze(obj);
 };
 
-export const createDateField = (code: string): DateField => {
-  return new DateField(code);
+// 日付フィールド（比較演算子、関数フォーマット対応）
+export const createDateField = (code: string) => {
+  return Object.freeze({
+    ...baseOps<DateValue>(code),
+    greaterThan(value: DateValue): Expression {
+      return condition(code, '>', formatFieldValue(value));
+    },
+    lessThan(value: DateValue): Expression {
+      return condition(code, '<', formatFieldValue(value));
+    },
+    greaterThanOrEqual(value: DateValue): Expression {
+      return condition(code, '>=', formatFieldValue(value));
+    },
+    lessThanOrEqual(value: DateValue): Expression {
+      return condition(code, '<=', formatFieldValue(value));
+    },
+  });
 };
 
-export const createUserField = (code: string): UserField => {
-  return new UserField(code);
+// 日時フィールド
+export const createDateTimeField = (code: string) => {
+  return Object.freeze({
+    ...baseOps<DateValue>(code),
+    greaterThan(value: DateValue): Expression {
+      return condition(code, '>', formatFieldValue(value));
+    },
+    lessThan(value: DateValue): Expression {
+      return condition(code, '<', formatFieldValue(value));
+    },
+    greaterThanOrEqual(value: DateValue): Expression {
+      return condition(code, '>=', formatFieldValue(value));
+    },
+    lessThanOrEqual(value: DateValue): Expression {
+      return condition(code, '<=', formatFieldValue(value));
+    },
+  });
 };
 
-export const createOrgField = (code: string): OrgField => {
-  return new OrgField(code);
+// 時間フィールド（比較演算子）
+export const createTimeField = (code: string) => {
+  return Object.freeze({
+    ...baseOps<string>(code),
+    greaterThan(value: string): Expression {
+      return condition(code, '>', value);
+    },
+    lessThan(value: string): Expression {
+      return condition(code, '<', value);
+    },
+    greaterThanOrEqual(value: string): Expression {
+      return condition(code, '>=', value);
+    },
+    lessThanOrEqual(value: string): Expression {
+      return condition(code, '<=', value);
+    },
+  });
 };
 
-export const createGroupField = (code: string): GroupField => {
-  return new GroupField(code);
-};
+// ユーザー/組織/グループ（等価系のみ）
+export const createUserField = (code: string) =>
+  Object.freeze(baseOps<UserValue>(code));
+export const createOrgField = (code: string) =>
+  Object.freeze(baseOps<string>(code));
+export const createGroupField = (code: string) =>
+  Object.freeze(baseOps<string>(code));
 
-export const createTimeField = (code: string): TimeField => {
-  return new TimeField(code);
-};
-
-export const createDateTimeField = (code: string): DateTimeField => {
-  return new DateTimeField(code);
-};
-
+// ラジオボタン（equals/in/not in を提供）
 export const createRadioButtonField = <T extends readonly string[]>(
   code: string,
   options: T
-): RadioButtonField<T> => {
-  return new RadioButtonField(code, options);
+) => {
+  const obj = {
+    options,
+    equals(value: T[number]): Expression {
+      return condition(code, '=', value);
+    },
+    notEquals(value: T[number]): Expression {
+      return condition(code, '!=', value);
+    },
+    in(values: T[number][]): Expression {
+      return condition(code, 'in', values);
+    },
+    notIn(values: T[number][]): Expression {
+      return condition(code, 'not in', values);
+    },
+  } as const;
+  return Object.freeze(obj);
 };
