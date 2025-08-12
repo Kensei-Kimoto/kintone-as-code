@@ -51,3 +51,15 @@ const q = createQuery()
   .offset(0)
   .build();
 ```
+
+## 機能の対応表（抜粋）
+
+```mermaid
+flowchart TD
+  A[文字列フィールド] -->|like/not like| Q
+  B[数値フィールド] -->|>, >=, <, <=| Q
+  C[選択肢系] -->|in/not in| Q
+  D[日付/日時] -->|TODAY, FROM_TODAY, THIS_WEEK, THIS_MONTH, THIS_YEAR, NOW, LAST_*| Q
+  E[ユーザ関数] -->|LOGINUSER| Q
+  Q[Expression]
+```
