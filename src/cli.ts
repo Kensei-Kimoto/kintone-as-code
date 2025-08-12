@@ -79,10 +79,20 @@ yargs(hideBin(process.argv))
         type: 'string',
         description: 'Output directory',
       },
+      // Back-compat and negation-friendly flags
+      'record-schema': {
+        type: 'boolean',
+        description:
+          'Alias of --with-record-schema (supports --no-record-schema)',
+      },
       'with-record-schema': {
         type: 'boolean',
         default: true,
         description: 'Generate record schema file (default: true)',
+      },
+      query: {
+        type: 'boolean',
+        description: 'Alias of --with-query (supports --no-query)',
       },
       'with-query': {
         type: 'boolean',
@@ -92,13 +102,22 @@ yargs(hideBin(process.argv))
     },
     (argv: any) => {
       const a = argv as ExportArgs;
+      // Normalize negation-friendly aliases first
+      const normalizedWithRecordSchema =
+        (a as any)['record-schema'] !== undefined
+          ? (a as any)['record-schema']
+          : a['with-record-schema'];
+      const normalizedWithQuery =
+        (a as any)['query'] !== undefined
+          ? (a as any)['query']
+          : a['with-query'];
       exportCommand({
         appId: a['app-id'],
         name: a.name,
         env: a.env,
         output: a.output,
-        withRecordSchema: a['with-record-schema'],
-        withQuery: a['with-query'],
+        withRecordSchema: normalizedWithRecordSchema,
+        withQuery: normalizedWithQuery,
       });
     }
   )
@@ -109,7 +128,8 @@ yargs(hideBin(process.argv))
       'app-id': {
         type: 'string',
         demandOption: false,
-        description: 'App ID to apply to (optional, uses schema appId if not provided)',
+        description:
+          'App ID to apply to (optional, uses schema appId if not provided)',
       },
       schema: {
         type: 'string',
