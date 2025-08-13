@@ -26,7 +26,6 @@ graph TB
     EX[query/expression.ts]
     F[query/field.ts]
     B[query/builder-fp.ts]
-    BOO["query/builder.ts<br/>OO facade"]
     VAL[query/validator.ts]
     PUB["index.ts<br/>exports"]
   end
@@ -43,7 +42,6 @@ graph TB
   B --> EX
   B --> F
   B --> VAL
-  BOO --> B
 
   C3 --> L --> CFG
   C3 --> KC
@@ -85,10 +83,8 @@ flowchart TD
 
 ## クエリビルダー
 
-- 推奨: FP API
+- FP API（公開APIはFPのみ）
   - `createQueryState`, `setWhere`, `appendOrder`, `withLimit`, `withOffset`, `setValidationOptions`, `build`
-- 互換: OOファサード
-  - `src/query/builder.ts` はFPコアの薄いラッパ（メソッドチェーンを維持）
 
 ```mermaid
 sequenceDiagram
@@ -117,7 +113,7 @@ sequenceDiagram
 
 ## 生成器
 
-- `src/core/query-generator.ts` は FP API をimportし、使いやすい `createQuery()` ファサードを公開
+- `src/core/query-generator.ts` は FP API をimportし、生成物側で使いやすい `createQuery()` ヘルパを公開（公開パッケージAPIではありません）
 
 ### 生成器の補足
 
@@ -129,12 +125,11 @@ sequenceDiagram
 flowchart LR
   META[Form Metadata] --> GEN[query-generator.ts]
   GEN --> QF[QueryFields]
-  GEN --> FACADE[createQuery facade]
-  FACADE --> FP[builder-fp.ts]
+  GEN --> FP[builder-fp.ts]
 ```
 
-## 移行ノート
+## 方針メモ
 
-- 既存のOOメソッドチェーンはそのまま利用可能
-- 新規コードでは合成性とテスト容易性の観点からFP APIの利用を推奨
+- OOファサードは提供しません（互換レイヤも撤去）。
+- 公開APIはFPのみ。生成物内のヘルパはあくまで生成物の使い勝手向上のためのものです。
 - Effect-TS統合の高度なサンプル（例: `buildQueryEffect`, `validateExpression` のEffect版）は現時点では未実装です（将来計画）。
