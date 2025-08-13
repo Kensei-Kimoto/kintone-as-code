@@ -1,15 +1,11 @@
-import { describe, it, expect, beforeAll, vi } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import { exportCommand } from '../commands/export.js';
 import { KintoneRestAPIClient } from '@kintone/rest-api-client';
 import fs from 'fs/promises';
 import path from 'path';
+import os from 'os';
 import { loadConfig } from '../core/config.js';
-import {
-  TODAY,
-  THIS_MONTH,
-  FROM_TODAY,
-  LOGINUSER,
-} from '../query/functions.js';
+import { THIS_MONTH, FROM_TODAY, LOGINUSER } from '../query/functions.js';
 import { and, or, not } from '../query/expression.js';
 
 // モック設定
@@ -30,6 +26,7 @@ vi.mock('../core/kintone-client.js', () => ({
 
 describe('営業管理アプリのE2Eクエリビルダーテスト', () => {
   const SALES_APP_ID = '123';
+  let outputDir: string;
 
   const mockFormFields = {
     properties: {
@@ -112,6 +109,9 @@ describe('営業管理アプリのE2Eクエリビルダーテスト', () => {
   };
 
   beforeAll(async () => {
+    // 一時ディレクトリに生成物を出力して安定化
+    const prefix = path.join(os.tmpdir(), 'kac-e2e-');
+    outputDir = await fs.mkdtemp(prefix);
     // @ts-ignore
     KintoneRestAPIClient.mockImplementation(() => mockClient);
     mockClient.app.getFormFields.mockResolvedValue(mockFormFields);
@@ -128,22 +128,26 @@ describe('営業管理アプリのE2Eクエリビルダーテスト', () => {
       },
     });
 
-    // ディレクトリ作成
-    await fs.mkdir('apps', { recursive: true });
-
     // exportコマンド実行
     await exportCommand({
       appId: SALES_APP_ID,
       name: 'sales-app',
+      output: outputDir,
       withQuery: true,
       withRecordSchema: true,
+      includeRelated: false,
+      includeSubtable: false,
     });
+  });
+
+  afterAll(async () => {
+    await fs.rm(outputDir, { recursive: true, force: true });
   });
 
   it('今月の商談中案件を抽出するクエリが生成できる', async () => {
     // 生成されたクエリビルダーファイルを動的インポート
     const queryModule = await import(
-      path.resolve(process.cwd(), 'apps/sales-app.query.ts')
+      path.resolve(outputDir, 'sales-app.query.ts')
     );
     const { QueryFields, createQuery } = queryModule;
     const { ステータス, 商談開始日, 売上見込額 } = QueryFields;
@@ -169,7 +173,7 @@ describe('営業管理アプリのE2Eクエリビルダーテスト', () => {
 
   it('自分が担当の期限が迫っている案件を抽出', async () => {
     const queryModule = await import(
-      path.resolve(process.cwd(), 'apps/sales-app.query.ts')
+      path.resolve(outputDir, 'sales-app.query.ts')
     );
     const { QueryFields, createQuery } = queryModule;
     const { 担当者, 期限日, ステータス } = QueryFields;
@@ -194,7 +198,7 @@ describe('営業管理アプリのE2Eクエリビルダーテスト', () => {
   describe('複雑なクエリのパフォーマンステスト', () => {
     it('複雑なクエリが1秒以内に生成される', async () => {
       const queryModule = await import(
-        path.resolve(process.cwd(), 'apps/sales-app.query.ts')
+        path.resolve(outputDir, 'sales-app.query.ts')
       );
       const { QueryFields, createQuery } = queryModule;
       const {
@@ -272,7 +276,10 @@ describe('営業管理アプリのE2Eクエリビルダーテスト', () => {
       await exportCommand({
         appId: '999',
         name: 'large-app',
+        output: outputDir,
         withQuery: true,
+        includeRelated: false,
+        includeSubtable: false,
       });
 
       const endTime = performance.now();
@@ -281,7 +288,10 @@ describe('営業管理アプリのE2Eクエリビルダーテスト', () => {
       expect(executionTime).toBeLessThan(5000); // 5秒未満
 
       // ファイルが生成されていることを確認
-      const content = await fs.readFile('apps/large-app.query.ts', 'utf-8');
+      const content = await fs.readFile(
+        path.join(outputDir, 'large-app.query.ts'),
+        'utf-8'
+      );
       expect(content).toContain('field_0');
       expect(content).toContain('field_99');
     });
@@ -314,11 +324,14 @@ describe('営業管理アプリのE2Eクエリビルダーテスト', () => {
       await exportCommand({
         appId: '456',
         name: 'unsupported-app',
+        output: outputDir,
         withQuery: true,
+        includeRelated: false,
+        includeSubtable: true,
       });
 
       const content = await fs.readFile(
-        'apps/unsupported-app.query.ts',
+        path.join(outputDir, 'unsupported-app.query.ts'),
         'utf-8'
       );
 
@@ -347,22 +360,31 @@ describe('回帰テスト', () => {
     });
 
     // withQuery: false で実行
+    // 別一時ディレクトリを使用（他ケースと独立）
+    const tmpOut = await fs.mkdtemp(path.join(os.tmpdir(), 'kac-e2e-'));
     await exportCommand({
       appId: '789',
       name: 'no-query-app',
+      output: tmpOut,
       withQuery: false,
       withRecordSchema: true,
+      includeRelated: false,
+      includeSubtable: false,
     });
 
     // クエリビルダーファイルが生成されていないことを確認
-    await expect(fs.access('apps/no-query-app.query.ts')).rejects.toThrow();
+    await expect(
+      fs.access(path.join(tmpOut, 'no-query-app.query.ts'))
+    ).rejects.toThrow();
 
     // スキーマファイルは生成されている
     await expect(
-      fs.access('apps/no-query-app.schema.ts')
+      fs.access(path.join(tmpOut, 'no-query-app.schema.ts'))
     ).resolves.toBeUndefined();
     await expect(
-      fs.access('apps/no-query-app.record-schema.ts')
+      fs.access(path.join(tmpOut, 'no-query-app.record-schema.ts'))
     ).resolves.toBeUndefined();
+
+    await fs.rm(tmpOut, { recursive: true, force: true });
   });
 });
