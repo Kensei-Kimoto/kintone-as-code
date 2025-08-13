@@ -46,10 +46,13 @@
     "chalk": "^5.3.0",
     "dotenv": "^16.3.1",
     "effect": "^3.0.0",
-    "esbuild": "^0.19.0",
+    "esbuild": "0.25.9",
     "kintone-effect-schema": "^0.8.0",
     "ora": "^6.3.0",
     "yargs": "^18.0.0"
+  },
+  "overrides": {
+    "esbuild": "0.25.9"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",

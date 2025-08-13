@@ -28,6 +28,8 @@ interface ApplyOptions {
   appId?: string;
   schema: string;
   env: string | undefined;
+  // Experimental flag: attempt to add missing subtable child fields automatically
+  addSubtableChild: boolean | undefined;
 }
 
 export const applyCommand = async (options: ApplyOptions) => {
