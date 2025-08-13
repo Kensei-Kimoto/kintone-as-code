@@ -2,6 +2,15 @@
 
 本プロジェクトは Functional Core, Imperative Shell を採用しています。
 
+## スコープと優先度
+
+- 目的（最重要）: kintone のフォームフィールド設定をコードで管理する IaC ツール
+  - 提供コマンド: `export`/`apply`/`create`
+  - コンバータ/スキーマ生成: フィールド定義・レコードスキーマの生成と適用
+- 派生機能（オプション）: クエリビルダーの自動生成
+  - 生成物 `apps/{name}.query.ts` にメソッドチェーンのヘルパを出力
+  - パッケージの公開APIは FP のみ（`src/query/index.ts`）
+
 ## 全体アーキテクチャ（俯瞰）
 
 ```mermaid

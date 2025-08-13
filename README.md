@@ -13,7 +13,7 @@ Manage kintone app configurations as code with type safety using Effect-TS.
 - Functional Core, Imperative Shell
 - Core (pure functions in `src/query/*`): expressions, fields, FP builder, validation
 - Shell (side effects): CLI/commands and code generator
-- OO method-chaining facade remains for compatibility; internally backed by FP core
+- Public API is FP-only. No OO facade is provided. The method-chaining `createQuery()` is a helper emitted in generated files `apps/{name}.query.ts`, not a public package API.
 
 ## Features
 
@@ -201,6 +201,16 @@ This tool is designed to work seamlessly with [kintone-effect-schema](https://gi
 - Automatic handling of empty values
 
 ## Commands
+
+### Docs index
+
+- Overview (IaC): `docs/overview.ja.md`
+- Config: `docs/config.ja.md`
+- Converter & Schemas: `docs/converter-and-schemas.ja.md`
+- Export/Apply/Create: `docs/export-apply-create.ja.md`
+- Query Builder: `docs/query-builder.ja.md`
+- Query Cookbook: `docs/query-cookbook.ja.md`
+- Architecture: `docs/architecture.ja.md`
 
 ### init
 
