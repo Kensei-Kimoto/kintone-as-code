@@ -46,8 +46,8 @@ kintone-as-code export --app-id 123 --name customer-app \
 
 メモ:
 
-- このリポジトリでは `apps/` が `.gitignore` に含まれています。生成物をバージョン管理したい場合は `.gitignore` の `apps/` を外してください。
-- `utils/app-ids.ts` は自動更新されます（アプリIDの一元管理）。
+- このリポジトリでは `apps/` と `utils/app-ids.ts` が `.gitignore` に含まれています（APP_IDS 運用前提）。生成物をバージョン管理する場合は `.gitignore` を調整してください。
+- `utils/app-ids.ts` は `export` 実行時に自動更新されます（APP_IDS方式）。環境変数方式を採用する場合は `getAppId('ENV_NAME')` を使用してください。
 
 ## 4. スキーマをレビュー・編集（例：フィールド追加）
 
