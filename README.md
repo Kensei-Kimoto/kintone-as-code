@@ -419,7 +419,7 @@ const records = await client.record.getRecords({
 - **Complex conditions**: Combine with `and()`, `or()`, `not()`
 - **Auto-completion**: IDE provides suggestions for fields and methods
 
-Note: The OO method-chain facade is kept for compatibility, but the FP API is recommended for composability and testability.
+Note: The query builder is not exposed as a public API. Internally we follow FP design; if we expose it in the future, the FP API will be the only supported style.
 
 ### Note: No `raw()` escape hatch
 

@@ -39,29 +39,9 @@ const q = build(
 );
 ```
 
-## OOファサード（互換・非推奨）
+## OOファサードの提供について
 
-```ts
-import { createQuery } from '../apps/customer-app.query';
-import { and } from 'kintone-as-code';
-import { QueryFields } from '../apps/customer-app.query';
-
-const { 会社名, 売上高, ステータス } = QueryFields;
-
-const q = createQuery()
-  .setValidationOptions({ maxDepth: 5 })
-  .where(
-    and(
-      会社名.like('*サイボウズ*'),
-      売上高.greaterThan(1000000),
-      ステータス.in(['商談中', '受注'])
-    )
-  )
-  .orderBy('売上高', 'desc')
-  .limit(100)
-  .offset(0)
-  .build();
-```
+本プロジェクトではクエリビルダーの公開は行っておらず、FP APIのみを想定しています。メソッドチェーンのOOファサードは提供しません。
 
 ## 機能の対応表（抜粋）
 
@@ -75,7 +55,7 @@ flowchart TD
   Q[Expression]
 ```
 
-注: OOファサード（`createQuery()`が返すオブジェクト）は互換維持のために残っていますが、関数合成のしやすさ・テスト容易性の観点からFP APIの利用を推奨します。
+注: クエリビルダ機能自体はパッケージの公開APIとしては提供していません。将来の方針としてもFP APIを前提とします。
 
 ## 補助メソッド
 
