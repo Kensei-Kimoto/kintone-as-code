@@ -125,6 +125,9 @@ export const appFieldsConfig = {
 
 // アプリスキーマ定義
 export default defineAppSchema({
+  // 運用方針に応じてどちらかを採用:
+  // 1) APP_IDS 方式（推奨: 生成物に合わせて一元管理）
+  // 2) getAppId 環境変数方式
   appId: getAppId('KINTONE_CUSTOMER_APP_ID'),
   name: '顧客管理',
   description: '顧客情報管理アプリ',

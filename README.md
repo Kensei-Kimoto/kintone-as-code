@@ -147,6 +147,9 @@ export const appFieldsConfig = {
 
 // App schema definition
 export default defineAppSchema({
+  // Choose one operational policy:
+  // 1) APP_IDS central registry (recommended to align with generated files)
+  // 2) getAppId (env var)
   appId: getAppId('KINTONE_CUSTOMER_APP_ID'),
   name: 'Customer Management',
   description: 'Customer information management app',

@@ -191,6 +191,10 @@ const makeBuilder = (state: ReturnType<typeof createQueryState>) => ({
   orderBy(field: string, direction: 'asc' | 'desc' = 'asc') {
     return makeBuilder(appendOrder(field, direction)(state));
   },
+  // Typed order helper (FieldNames)
+  orderByField(field: FieldNames, direction: 'asc' | 'desc' = 'asc') {
+    return makeBuilder(appendOrder(field as string, direction)(state));
+  },
   limit(n: number) {
     return makeBuilder(withLimit(n)(state));
   },
