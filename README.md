@@ -381,7 +381,7 @@ import {
   appendOrder,
   withLimit,
   build,
-} from 'kintone-as-code/query';
+} from 'kintone-as-code';
 
 const query2 = build(
   withLimit(100)(
