@@ -26,7 +26,42 @@ export default defineAppSchema({
   fieldsConfig: appFieldsConfig
 });`;
   } catch (error) {
-    console.error('Failed to parse kintone fields:', error);
+    // バリデーションに失敗した場合でも、最低限の `properties` があれば寛容にフォールバック
+    console.error('Failed to parse kintone fields (will try fallback):', error);
+    try {
+      if (
+        typeof rawFields === 'object' &&
+        rawFields !== null &&
+        'properties' in (rawFields as Record<string, unknown>) &&
+        typeof (rawFields as any).properties === 'object'
+      ) {
+        const props = (rawFields as any).properties as Record<string, unknown>;
+        // プロパティの最低限バリデーション: 各フィールドが type:string を持つこと
+        const allFieldsHaveType = Object.values(props).every(
+          (v) =>
+            typeof v === 'object' &&
+            v !== null &&
+            typeof (v as any).type === 'string'
+        );
+        if (!allFieldsHaveType) {
+          throw new Error('Schema validation failed during export.');
+        }
+        const classicCode = generateFieldsConfigCode(props);
+        return `${classicCode}
+
+import { defineAppSchema } from 'kintone-as-code';
+import { APP_IDS } from '../utils/app-ids.js';
+
+export default defineAppSchema({
+  appId: APP_IDS.${appConstantName || 'MY_APP'},
+  name: '${appName || 'Exported App'}',
+  description: 'This schema was exported from kintone.',
+  fieldsConfig: appFieldsConfig
+});`;
+      }
+    } catch {
+      // フォールバックも失敗した場合は従来どおりエラー
+    }
     if (hasErrorsProperty(error)) {
       console.error(
         'Validation errors:',
