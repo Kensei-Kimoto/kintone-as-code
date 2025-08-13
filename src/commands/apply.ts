@@ -749,25 +749,35 @@ export const applyCommand = async (options: ApplyOptions) => {
                     }
                   }
 
-                  for (const [key, value] of Object.entries(
-                    currentSubOptions
-                  )) {
-                    subfieldUpdates.options[key] = value;
-                  }
+                  if (subOptionsChanged) {
+                    subfieldUpdates.options = {};
 
-                  for (const [key, value] of Object.entries(configSubOptions)) {
-                    if (
-                      subfieldUpdates.options[key] &&
-                      typeof value === 'object'
-                    ) {
-                      subfieldUpdates.options[key] = {
-                        ...subfieldUpdates.options[key],
-                        ...value,
-                      };
+                    // First, add all existing options (to preserve any that aren't being changed)
+                    for (const [key, value] of Object.entries(
+                      currentSubOptions
+                    )) {
+                      subfieldUpdates.options[key] = value;
                     }
-                  }
 
-                  subfieldHasChanges = true;
+                    // Then override with config options (this updates the labels)
+                    // Note: This will overwrite all existing options with the ones from the config,
+                    // so make sure your config includes all options you want to keep.
+                    for (const [key, value] of Object.entries(
+                      configSubOptions
+                    )) {
+                      if (
+                        subfieldUpdates.options[key] &&
+                        typeof value === 'object'
+                      ) {
+                        subfieldUpdates.options[key] = {
+                          ...subfieldUpdates.options[key],
+                          ...value,
+                        };
+                      }
+                    }
+
+                    subfieldHasChanges = true;
+                  }
                 }
               }
             }
