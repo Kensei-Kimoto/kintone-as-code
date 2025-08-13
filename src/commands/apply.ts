@@ -161,8 +161,9 @@ export const applyCommand = async (options: ApplyOptions) => {
 
       // Check for changes
       const updates: FieldUpdatePayload = {
-        type: currentField.type as FieldType,  // type is required
-        code: fieldCode                         // code is required
+        // NOTE: kintone APIの仕様上、更新時も type/code の指定が必要です
+        type: currentField.type as FieldType,
+        code: fieldCode
       };
       let hasChanges = false;
       
@@ -301,7 +302,7 @@ export const applyCommand = async (options: ApplyOptions) => {
             }
           }
           
-          // If any options changed, we need to include ALL options in the update
+          // If any options changed, we need to include ALL options in the update (全再構成)
           if (optionsChanged) {
             updates.options = {};
             

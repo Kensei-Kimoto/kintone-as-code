@@ -12,8 +12,6 @@ export default {
         baseUrl: process.env.KINTONE_BASE_URL,
         username: process.env.KINTONE_USERNAME,
         password: process.env.KINTONE_PASSWORD,
-        // or use API token
-        // apiToken: process.env.KINTONE_API_TOKEN,
       }
     },
     development: {
@@ -21,27 +19,21 @@ export default {
         baseUrl: process.env.KINTONE_DEV_BASE_URL || process.env.KINTONE_BASE_URL,
         username: process.env.KINTONE_DEV_USERNAME || process.env.KINTONE_USERNAME,
         password: process.env.KINTONE_DEV_PASSWORD || process.env.KINTONE_PASSWORD,
-        // or use API token
-        // apiToken: process.env.KINTONE_DEV_API_TOKEN,
       }
     }
   }
 };
 `;
 
-const envExampleTemplate = `# Kintone authentication
+const envExampleTemplate = `# Kintone authentication (CLI はユーザー/パスワードのみ対応)
 KINTONE_BASE_URL=https://your-domain.cybozu.com
 KINTONE_USERNAME=your-username
 KINTONE_PASSWORD=your-password
-# or use API token instead of username/password
-# KINTONE_API_TOKEN=your-api-token
 
 # Development environment (optional - defaults to production values if not set)
 # KINTONE_DEV_BASE_URL=https://dev-domain.cybozu.com
 # KINTONE_DEV_USERNAME=dev-username
 # KINTONE_DEV_PASSWORD=dev-password
-# or use API token
-# KINTONE_DEV_API_TOKEN=your-dev-api-token
 `;
 
 const gitignoreTemplate = `# Dependencies
@@ -95,7 +87,7 @@ export function defineAppSchema<T extends {
 }
 `;
 
-export const init = async ({ force }: { force?: boolean | undefined }) => {
+export const init = async ({ force, noEsmRewrite }: { force?: boolean | undefined; noEsmRewrite?: boolean | undefined }) => {
   const configPath = path.join(process.cwd(), 'kintone-as-code.config.js');
   const envExamplePath = path.join(process.cwd(), '.env.example');
   const gitignorePath = path.join(process.cwd(), '.gitignore');
@@ -126,7 +118,7 @@ export const init = async ({ force }: { force?: boolean | undefined }) => {
   await fs.writeFile(helpersPath, helpersTemplate.trim());
 
   // Update package.json to use ES modules if it exists
-  if (await fileExists(packageJsonPath)) {
+  if (!noEsmRewrite && await fileExists(packageJsonPath)) {
     try {
       const packageJsonContent = await fs.readFile(packageJsonPath, 'utf-8');
       const packageJson = JSON.parse(packageJsonContent);
@@ -171,7 +163,7 @@ export const init = async ({ force }: { force?: boolean | undefined }) => {
     } catch (error) {
       console.warn('Could not update package.json. Please check the file manually.');
     }
-  } else {
+  } else if (!await fileExists(packageJsonPath)) {
     // Create a complete package.json if it doesn't exist
     const completePackageJson = {
       name: path.basename(process.cwd()),
