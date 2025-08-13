@@ -106,7 +106,19 @@ export const generateQueryBuilder = (
     const mapping = getFieldMapping(field.type);
 
     if (!mapping) {
-      // クエリで使用できないフィールドはスキップ（警告コメントは出力しない）
+      // SUBTABLE は includeSubtable を明示的に false 指定されたケースでは完全に無視（コメントも出さない）
+      const includeSubtableExplicit =
+        options &&
+        Object.prototype.hasOwnProperty.call(options, 'includeSubtable');
+      if (
+        field.type === 'SUBTABLE' &&
+        includeSubtableExplicit &&
+        options?.includeSubtable === false
+      ) {
+        return;
+      }
+      // それ以外の未サポートフィールドは警告コメントとして残す
+      warnings.push(`// ${code}: ${field.type} type is not supported`);
       return;
     }
 
