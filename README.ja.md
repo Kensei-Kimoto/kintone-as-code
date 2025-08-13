@@ -7,7 +7,7 @@ kintoneアプリの設定をコードで管理し、Effect-TSによる型安全�
 - Functional Core, Imperative Shell を採用
 - Coreは純関数（`src/query/*`）: 式、フィールド、ビルダー（FP）、バリデーション
 - Shellは副作用（`src/cli.ts`, `src/commands/*`, 生成器）
-- メソッドチェーンのOOファサードは互換維持のために存在し、内部はFPコア
+- 公開APIはFPのみ。OOファサードは提供しません（メソッドチェーンの `createQuery()` は生成物 `apps/{name}.query.ts` が持つヘルパであり、パッケージの公開APIではありません）
 
 ## 特徴
 
@@ -178,6 +178,7 @@ export default {
 
 ### ドキュメント索引
 
+- 概要（IaCの全体像）: `docs/overview.ja.md`
 - 設定: `docs/config.ja.md`
 - 生成/レコードスキーマ: `docs/converter-and-schemas.ja.md`
 - Export/Apply/Create: `docs/export-apply-create.ja.md`

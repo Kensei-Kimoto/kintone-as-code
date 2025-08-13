@@ -68,3 +68,5 @@ apps/test-*.schema.ts
 test-npm-package/
 test-v*/
 test-*/
+
+apps/
