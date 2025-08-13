@@ -182,6 +182,7 @@ export default {
 - 生成/レコードスキーマ: `docs/converter-and-schemas.ja.md`
 - Export/Apply/Create: `docs/export-apply-create.ja.md`
 - クエリビルダー: `docs/query-builder.ja.md`
+- クエリ クックブック: `docs/query-cookbook.ja.md`
 - アーキテクチャ: `docs/architecture.ja.md`
 
 ### init
