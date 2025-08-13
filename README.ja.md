@@ -406,6 +406,11 @@ const records = await client.record.getRecords({
 - **複雑な条件**: `and()`、`or()`、`not()` で組み合わせ
 - **自動補完**: IDEがフィールドとメソッドの候補を提供
 
+### 補足: raw() の非提供
+
+生クエリを直接挿入する `raw()` は提供しません。代替として、
+`contains/startsWith/endsWith`、`between(min, max)`、`customDateFunction/customUserFunction` を利用してください。
+
 ### フィールドタイプ別の例
 
 ```typescript
