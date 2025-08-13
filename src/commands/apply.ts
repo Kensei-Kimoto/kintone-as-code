@@ -28,6 +28,7 @@ interface ApplyOptions {
   appId?: string;
   schema: string;
   env: string | undefined;
+  addSubtableChild?: boolean;
 }
 
 export const applyCommand = async (options: ApplyOptions) => {
@@ -148,6 +149,7 @@ export const applyCommand = async (options: ApplyOptions) => {
     }
     
     // Process existing fields for updates
+    const subtableChildAdds: Record<string, Record<string, AnyFieldProperties>> = {};
     for (const [fieldCode, fieldConfig] of existingFieldsToUpdate) {
       const currentField = currentForm.properties[fieldCode];
       if (!currentField) continue; // Type guard - should not happen as we already checked
@@ -161,8 +163,9 @@ export const applyCommand = async (options: ApplyOptions) => {
 
       // Check for changes
       const updates: FieldUpdatePayload = {
-        type: currentField.type as FieldType,  // type is required
-        code: fieldCode                         // code is required
+        // NOTE: kintone APIの仕様上、更新時も type/code の指定が必要です
+        type: currentField.type as FieldType,
+        code: fieldCode
       };
       let hasChanges = false;
       
@@ -301,7 +304,7 @@ export const applyCommand = async (options: ApplyOptions) => {
             }
           }
           
-          // If any options changed, we need to include ALL options in the update
+          // If any options changed, we need to include ALL options in the update (全再構成)
           if (optionsChanged) {
             updates.options = {};
             
@@ -339,7 +342,14 @@ export const applyCommand = async (options: ApplyOptions) => {
             const currentSubfield = currentSubfields[subfieldCode];
             
             if (!currentSubfield) {
-              console.log(chalk.yellow(`  ${fieldCode}.${subfieldCode}: New subfield detected (requires manual addition)`));
+              if (options.addSubtableChild) {
+                // Schedule addition of missing subtable child field
+                if (!subtableChildAdds[fieldCode]) subtableChildAdds[fieldCode] = {};
+                subtableChildAdds[fieldCode][subfieldCode] = configSubfield as AnyFieldProperties;
+                console.log(chalk.yellow(`  ${fieldCode}.${subfieldCode}: New subfield detected → will be added`));
+              } else {
+                console.log(chalk.yellow(`  ${fieldCode}.${subfieldCode}: New subfield detected (requires manual addition)`));
+              }
               continue;
             }
 
@@ -461,8 +471,33 @@ export const applyCommand = async (options: ApplyOptions) => {
       }
     }
 
+    // Add missing subtable child fields if requested
+    if (options.addSubtableChild && Object.keys(subtableChildAdds).length > 0) {
+      console.log(chalk.blue(`\nAdding subtable child field(s)...`));
+      const subtableProps: Record<string, unknown> = {};
+      for (const [subtableCode, children] of Object.entries(subtableChildAdds)) {
+        subtableProps[subtableCode] = {
+          type: 'SUBTABLE',
+          code: subtableCode,
+          fields: children,
+        };
+      }
+      try {
+        await addFormFieldsLoose(client, { app: appId, properties: subtableProps });
+        console.log(chalk.green(`✓ Successfully added subtable child fields (${Object.values(subtableChildAdds).reduce((a, b) => a + Object.keys(b).length, 0)})`));
+      } catch (error) {
+        console.error(chalk.red('Failed to add subtable child fields:'));
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error(chalk.red('Full error:'), errorMessage);
+        process.exit(1);
+      }
+    }
+
     // Check if we need to deploy
-    const needsDeploy = Object.keys(newFields).length > 0 || changesCount > 0;
+    const needsDeploy =
+      Object.keys(newFields).length > 0 ||
+      changesCount > 0 ||
+      (options.addSubtableChild && Object.keys(subtableChildAdds).length > 0);
     
     if (changesCount === 0 && Object.keys(newFields).length === 0) {
       console.log(chalk.green('No changes detected. App is up to date!'));

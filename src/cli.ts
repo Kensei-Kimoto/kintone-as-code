@@ -54,9 +54,13 @@ yargs(hideBin(process.argv))
         type: 'boolean',
         description: 'Force overwrite existing files',
       },
+      'no-esm-rewrite': {
+        type: 'boolean',
+        description: 'Do not rewrite package.json to ESM (for CJS projects)'
+      },
     },
     (argv: any) => {
-      init({ force: argv.force as boolean | undefined });
+      init({ force: argv.force as boolean | undefined, noEsmRewrite: argv['no-esm-rewrite'] as boolean | undefined });
     }
   )
   .command(
@@ -156,12 +160,18 @@ yargs(hideBin(process.argv))
         type: 'string',
         description: 'Environment name',
       },
+      'add-subtable-child': {
+        type: 'boolean',
+        default: false,
+        description: 'Automatically add missing subtable child fields (experimental)'
+      },
     },
     (argv: any) => {
       const a = argv as ApplyArgs;
-      const options: Parameters<typeof applyCommand>[0] = {
+      const options: any = {
         schema: a.schema,
         env: a.env,
+        addSubtableChild: (argv as any)['add-subtable-child'] as boolean,
       };
       if (a['app-id']) {
         options.appId = a['app-id'];
