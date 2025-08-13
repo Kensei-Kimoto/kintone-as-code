@@ -119,6 +119,12 @@ sequenceDiagram
 
 - `src/core/query-generator.ts` は FP API をimportし、使いやすい `createQuery()` ファサードを公開
 
+### 生成器の補足
+
+- 未サポートフィールドは生成物から除外し、警告コメントを出力します。
+- `--include-subtable=false` を明示した場合、`SUBTABLE` は完全に無視し、コメントも出力しません。
+- `--include-related` 指定時は `REFERENCE_TABLE` の `displayFields` だけを `createTableSubField('親.子')` で最小公開します（`in/not in` のみ）。
+
 ```mermaid
 flowchart LR
   META[Form Metadata] --> GEN[query-generator.ts]

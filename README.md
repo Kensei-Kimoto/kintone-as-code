@@ -419,6 +419,12 @@ const records = await client.record.getRecords({
 - **Complex conditions**: Combine with `and()`, `or()`, `not()`
 - **Auto-completion**: IDE provides suggestions for fields and methods
 
+### Note: No `raw()` escape hatch
+
+Direct raw query insertion via `raw()` is not provided. Instead, use
+`contains/startsWith/endsWith`, `between(min, max)`, and
+`customDateFunction/customUserFunction` as escape hatches.
+
 ### Field Type Examples
 
 ```typescript
