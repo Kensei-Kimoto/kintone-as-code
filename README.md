@@ -301,7 +301,10 @@ import {
 // Initialize client
 const client = new KintoneRestAPIClient({
   baseUrl: process.env.KINTONE_BASE_URL!,
-  auth: { username: process.env.KINTONE_USERNAME!, password: process.env.KINTONE_PASSWORD! },
+  auth: {
+    username: process.env.KINTONE_USERNAME!,
+    password: process.env.KINTONE_PASSWORD!,
+  },
 });
 
 // Fetch and validate record with automatic normalization
