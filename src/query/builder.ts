@@ -14,6 +14,10 @@ import {
   build as buildFromState,
 } from './builder-fp.js';
 
+/**
+ * @deprecated FP API（builder-fp.ts）を使用してください。
+ * 本クラスは互換維持のために残されています。
+ */
 export class QueryBuilder {
   private state: QueryState = createQueryState();
 

@@ -39,7 +39,7 @@ const q = build(
 );
 ```
 
-## OOファサード（互換）
+## OOファサード（互換・非推奨）
 
 ```ts
 import { createQuery } from '../apps/customer-app.query';
@@ -74,6 +74,8 @@ flowchart TD
   E[ユーザ関数] -->|LOGINUSER| Q
   Q[Expression]
 ```
+
+注: OOファサード（`createQuery()`が返すオブジェクト）は互換維持のために残っていますが、関数合成のしやすさ・テスト容易性の観点からFP APIの利用を推奨します。
 
 ## 補助メソッド
 
