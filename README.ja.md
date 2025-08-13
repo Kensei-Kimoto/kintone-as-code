@@ -262,8 +262,8 @@ import {
 
 // クライアントの初期化
 const client = new KintoneRestAPIClient({
-  baseUrl: 'https://example.cybozu.com',
-  auth: { apiToken: 'YOUR_API_TOKEN' },
+  baseUrl: process.env.KINTONE_BASE_URL!,
+  auth: { username: process.env.KINTONE_USERNAME!, password: process.env.KINTONE_PASSWORD! },
 });
 
 // レコードの取得とバリデーション（自動正規化付き）
