@@ -44,7 +44,7 @@ const main = async () => {
       appendOrder('レコード番号', 'desc')(
         setWhere(
           and(
-            Fields.name.like('*テスト*'),
+            Fields.name.like('テスト'),
             Fields.age.greaterThan(20),
           ),
         )(createQueryState()),
