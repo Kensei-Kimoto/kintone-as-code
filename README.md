@@ -419,6 +419,8 @@ const records = await client.record.getRecords({
 - **Complex conditions**: Combine with `and()`, `or()`, `not()`
 - **Auto-completion**: IDE provides suggestions for fields and methods
 
+Note: The OO method-chain facade is kept for compatibility, but the FP API is recommended for composability and testability.
+
 ### Note: No `raw()` escape hatch
 
 Direct raw query insertion via `raw()` is not provided. Instead, use
