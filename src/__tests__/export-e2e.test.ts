@@ -122,7 +122,8 @@ describe('営業管理アプリのE2Eクエリビルダーテスト', () => {
         test: {
           auth: {
             baseUrl: 'https://test.cybozu.com',
-            apiToken: 'test-token',
+            username: 'u',
+            password: 'p',
           },
         },
       },
@@ -160,7 +161,7 @@ describe('営業管理アプリのE2Eクエリビルダーテスト', () => {
           売上見込額.greaterThan(1000000)
         )
       )
-      .orderBy('売上見込額', 'desc')
+      .orderByField('売上見込額', 'desc')
       .limit(100)
       .build();
 
@@ -186,7 +187,7 @@ describe('営業管理アプリのE2Eクエリビルダーテスト', () => {
           not(ステータス.in(['完了', 'キャンセル']))
         )
       )
-      .orderBy('期限日', 'asc')
+      .orderByField('期限日', 'asc')
       .build();
 
     expect(query).toContain('担当者 = LOGINUSER()');

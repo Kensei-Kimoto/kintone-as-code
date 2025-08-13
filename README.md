@@ -91,7 +91,8 @@ This creates a new app with all fields defined in the schema.
 The exported schema uses kintone-effect-schema for complete type safety:
 
 ```typescript
-import { defineAppSchema, getAppId } from 'kintone-as-code';
+import { defineAppSchema } from 'kintone-as-code';
+import { APP_IDS } from './utils/app-ids';
 import type {
   SingleLineTextFieldProperties,
   NumberFieldProperties,
@@ -147,10 +148,8 @@ export const appFieldsConfig = {
 
 // App schema definition
 export default defineAppSchema({
-  // Choose one operational policy:
-  // 1) APP_IDS central registry (recommended to align with generated files)
-  // 2) getAppId (env var)
-  appId: getAppId('KINTONE_CUSTOMER_APP_ID'),
+  // APP_IDS central registry (recommended to align with generated files)
+  appId: APP_IDS.CUSTOMER_APP,
   name: 'Customer Management',
   description: 'Customer information management app',
   fieldsConfig: appFieldsConfig,

@@ -69,7 +69,8 @@ kintone-as-code export --app-id 123 --name customer-app \
 エクスポートされたスキーマは、完全な型安全性のためにkintone-effect-schemaを使用します：
 
 ```typescript
-import { defineAppSchema, getAppId } from 'kintone-as-code';
+import { defineAppSchema } from 'kintone-as-code';
+import { APP_IDS } from './utils/app-ids';
 import type {
   SingleLineTextFieldProperties,
   NumberFieldProperties,
@@ -125,10 +126,8 @@ export const appFieldsConfig = {
 
 // アプリスキーマ定義
 export default defineAppSchema({
-  // 運用方針に応じてどちらかを採用:
-  // 1) APP_IDS 方式（推奨: 生成物に合わせて一元管理）
-  // 2) getAppId 環境変数方式
-  appId: getAppId('KINTONE_CUSTOMER_APP_ID'),
+  // APP_IDS 方式（推奨: 生成物に合わせて一元管理）
+  appId: APP_IDS.CUSTOMER_APP,
   name: '顧客管理',
   description: '顧客情報管理アプリ',
   fieldsConfig: appFieldsConfig,
