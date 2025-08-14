@@ -46,7 +46,7 @@ kintone-as-code init
 # 基本（デフォルトで query / record-schema も生成）
 kintone-as-code export --app-id 123 --name customer-app
 
-# 生成を抑止（後方互換の --with-* も可）
+# 生成を抑止
 kintone-as-code export --app-id 123 --name customer-app --no-query
 kintone-as-code export --app-id 123 --name customer-app --no-record-schema
 
@@ -412,7 +412,7 @@ const records = await client.record.getRecords({
 - **複雑な条件**: `and()`、`or()`、`not()` で組み合わせ
 - **自動補完**: IDEがフィールドとメソッドの候補を提供
 
-注: クエリビルダ機能は公開APIとしては提供していません。内部的にはFP APIに基づく設計であり、将来的に公開する場合もFP方針を前提とします。
+注: クエリビルダー機能は公開APIとしては提供していません。内部的にはFP APIに基づく設計であり、将来的に公開する場合もFP方針を前提とします。
 
 ### 補足: raw() の非提供
 

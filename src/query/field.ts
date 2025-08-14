@@ -1,6 +1,7 @@
 import { Expression, condition, and } from './expression.js';
 import {
   DateFunction,
+  UserFunction,
   formatFunction,
   type KintoneFunction,
 } from './functions.js';
@@ -33,18 +34,17 @@ type DateValue = string | DateFunction;
 
 // 値のフォーマット（関数対応）
 type PrimitiveFieldValue = string | number | boolean | null | undefined;
-type AllowedFunction = KintoneFunction; // DateFunction | UserFunction
+type AllowedFunction = DateFunction | UserFunction;
 type AllowedFieldValue = PrimitiveFieldValue | AllowedFunction;
 
+const isKintoneFunction = (v: unknown): v is KintoneFunction =>
+  typeof v === 'object' && v !== null && (v as { _tag?: unknown })._tag === 'function';
+
 const formatFieldValue = (value: AllowedFieldValue): PrimitiveFieldValue => {
-  if (
-    value &&
-    typeof value === 'object' &&
-    (value as any)._tag === 'function'
-  ) {
-    return formatFunction(value as AllowedFunction);
+  if (isKintoneFunction(value)) {
+    return formatFunction(value);
   }
-  return value as PrimitiveFieldValue;
+  return value;
 };
 
 // 汎用の等価系（不変オブジェクトにメソッドを実装）
@@ -63,10 +63,79 @@ const baseOps = (code: string) => ({
   },
 });
 
+// 文字列専用の基本操作
+const stringBaseOps = (code: string) => ({
+  equals(value: string): Expression {
+    return condition(code, '=', formatFieldValue(value));
+  },
+  notEquals(value: string): Expression {
+    return condition(code, '!=', formatFieldValue(value));
+  },
+  in(values: ReadonlyArray<string>): Expression {
+    return condition(code, 'in', values);
+  },
+  notIn(values: ReadonlyArray<string>): Expression {
+    return condition(code, 'not in', values);
+  },
+});
+
+// 数値専用の基本操作
+const numberBaseOps = (code: string) => ({
+  equals(value: number): Expression {
+    return condition(code, '=', formatFieldValue(value));
+  },
+  notEquals(value: number): Expression {
+    return condition(code, '!=', formatFieldValue(value));
+  },
+  in(values: ReadonlyArray<number>): Expression {
+    return condition(code, 'in', values);
+  },
+  notIn(values: ReadonlyArray<number>): Expression {
+    return condition(code, 'not in', values);
+  },
+});
+
+// 日付専用の基本操作（DateFunction対応）
+const dateBaseOps = (code: string) => ({
+  equals(value: DateValue): Expression {
+    return condition(code, '=', formatFieldValue(value));
+  },
+  notEquals(value: DateValue): Expression {
+    return condition(code, '!=', formatFieldValue(value));
+  },
+  in(values: ReadonlyArray<DateValue>): Expression {
+    const formattedValues = values.map((v) => formatFieldValue(v)).filter((v): v is string | number => v !== null && v !== undefined);
+    return condition(code, 'in', formattedValues);
+  },
+  notIn(values: ReadonlyArray<DateValue>): Expression {
+    const formattedValues = values.map((v) => formatFieldValue(v)).filter((v): v is string | number => v !== null && v !== undefined);
+    return condition(code, 'not in', formattedValues);
+  },
+});
+
+// ユーザー専用の基本操作
+type UserValue = string | UserFunction;
+const userBaseOps = (code: string) => ({
+  equals(value: UserValue): Expression {
+    return condition(code, '=', formatFieldValue(value));
+  },
+  notEquals(value: UserValue): Expression {
+    return condition(code, '!=', formatFieldValue(value));
+  },
+  in(values: ReadonlyArray<UserValue>): Expression {
+    const formattedValues = values.map((v) => formatFieldValue(v)).filter((v): v is string | number => v !== null && v !== undefined);
+    return condition(code, 'in', formattedValues);
+  },
+  notIn(values: ReadonlyArray<UserValue>): Expression {
+    const formattedValues = values.map((v) => formatFieldValue(v)).filter((v): v is string | number => v !== null && v !== undefined);
+    return condition(code, 'not in', formattedValues);
+  },
+});
+
 // 文字列フィールド（like/not like を追加）
 export const createStringField = (code: string) => {
   return Object.freeze({
-    ...baseOps(code),
+    ...stringBaseOps(code),
     like(pattern: string): Expression {
       return condition(code, 'like', pattern);
     },
@@ -88,7 +157,7 @@ export const createStringField = (code: string) => {
 // 数値フィールド（比較演算子）
 export const createNumberField = (code: string) => {
   return Object.freeze({
-    ...baseOps(code),
+    ...numberBaseOps(code),
     greaterThan(value: number): Expression {
       return condition(code, '>', value);
     },
@@ -147,7 +216,7 @@ export const createCheckboxField = <T extends readonly string[]>(
 // 日付フィールド（比較演算子、関数フォーマット対応）
 export const createDateField = (code: string) => {
   return Object.freeze({
-    ...baseOps(code),
+    ...dateBaseOps(code),
     greaterThan(value: DateValue): Expression {
       return condition(code, '>', formatFieldValue(value));
     },
@@ -172,7 +241,7 @@ export const createDateField = (code: string) => {
 // 日時フィールド
 export const createDateTimeField = (code: string) => {
   return Object.freeze({
-    ...baseOps(code),
+    ...dateBaseOps(code),
     greaterThan(value: DateValue): Expression {
       return condition(code, '>', formatFieldValue(value));
     },
@@ -220,9 +289,9 @@ export const createTimeField = (code: string) => {
 };
 
 // ユーザー/組織/グループ（等価系のみ）
-export const createUserField = (code: string) => Object.freeze(baseOps(code));
-export const createOrgField = (code: string) => Object.freeze(baseOps(code));
-export const createGroupField = (code: string) => Object.freeze(baseOps(code));
+export const createUserField = (code: string) => Object.freeze(userBaseOps(code));
+export const createOrgField = (code: string) => Object.freeze(userBaseOps(code));
+export const createGroupField = (code: string) => Object.freeze(userBaseOps(code));
 
 // ラジオボタン（equals/in/not in を提供）
 export const createRadioButtonField = <T extends readonly string[]>(

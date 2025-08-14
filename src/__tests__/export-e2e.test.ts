@@ -112,11 +112,11 @@ describe('営業管理アプリのE2Eクエリビルダーテスト', () => {
     // 一時ディレクトリに生成物を出力して安定化
     const prefix = path.join(os.tmpdir(), 'kac-e2e-');
     outputDir = await fs.mkdtemp(prefix);
-    // @ts-ignore
-    KintoneRestAPIClient.mockImplementation(() => mockClient);
+    // Mock implementation for testing
+    vi.mocked(KintoneRestAPIClient).mockImplementation(() => mockClient);
     mockClient.app.getFormFields.mockResolvedValue(mockFormFields);
-    // @ts-ignore
-    loadConfig.mockResolvedValue({
+    // Mock configuration for testing
+    vi.mocked(loadConfig).mockResolvedValue({
       default: 'test',
       environments: {
         test: {
