@@ -38,6 +38,7 @@ export {
   type UserFunction,
   type KintoneFunction,
   TODAY,
+  NOW,
   FROM_TODAY,
   THIS_WEEK,
   THIS_MONTH,
