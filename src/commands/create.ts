@@ -135,8 +135,8 @@ export const createCommand = async (options: CreateOptions) => {
     
     // Suggest next steps
     console.log(chalk.gray('\nNext steps:'));
-    console.log(chalk.gray(`1. Update your schema file with the app ID (APP_IDS):`));
-    console.log(chalk.gray(`   import { APP_IDS } from './utils/app-ids'; // ensure updated by export`));
+    console.log(chalk.gray(`1. Update your schema to use the centralized APP_IDS registry:`));
+    console.log(chalk.gray(`   import { APP_IDS } from '<path-to>/utils/app-ids'; // ensure it's kept up-to-date by export`));
     console.log(chalk.gray(`   // e.g., appId: APP_IDS.${'NEW_APP'} // replace with your constant`));
     console.log(chalk.gray(`2. Use apply command to update the app:`));
     console.log(chalk.gray(`   kintone-as-code apply --app-id ${newAppId} --schema ${options.schema}`));
