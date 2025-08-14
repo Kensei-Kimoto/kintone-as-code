@@ -146,7 +146,7 @@ export const init = async ({
 
       // Add required dependencies for schemas to work
       if (!packageJson.dependencies['kintone-as-code']) {
-        packageJson.dependencies['kintone-as-code'] = '^0.6.0';
+        packageJson.dependencies['kintone-as-code'] = '^0.6.1';
       }
       if (!packageJson.dependencies['kintone-effect-schema']) {
         packageJson.dependencies['kintone-effect-schema'] = '^0.8.0';
@@ -196,7 +196,7 @@ export const init = async ({
         create: 'kintone-as-code create',
       },
       dependencies: {
-        'kintone-as-code': '^0.6.0',
+        'kintone-as-code': '^0.6.1',
         'kintone-effect-schema': '^0.8.0',
         dotenv: '^16.3.1',
         effect: '^3.0.0',
