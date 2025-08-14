@@ -158,14 +158,9 @@ export default defineAppSchema({
 
 ## Configuration
 
-### Environment Variables
+### App ID management
 
-Set your app IDs as environment variables:
-
-```bash
-KINTONE_CUSTOMER_APP_ID=123
-KINTONE_PRODUCT_APP_ID=456
-```
+Use `utils/app-ids.ts` to centrally manage app IDs. It is automatically updated by the `export` command.
 
 ### Configuration File
 
@@ -420,7 +415,7 @@ const records = await client.record.getRecords({
 });
 ```
 
-#### Helper methods
+### Helper methods
 
 - Strings: `contains()/startsWith()/endsWith()`
 - Numbers/Date/DateTime/Time: `between(min, max)`
