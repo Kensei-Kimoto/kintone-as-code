@@ -399,7 +399,7 @@ const records = await client.record.getRecords({
 });
 ```
 
-#### 補助メソッド
+### 補助メソッド
 
 - 文字列: `contains()/startsWith()/endsWith()`
 - 数値/日付/日時/時間: `between(min, max)`

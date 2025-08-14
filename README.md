@@ -420,7 +420,7 @@ const records = await client.record.getRecords({
 });
 ```
 
-#### Helper methods
+### Helper methods
 
 - Strings: `contains()/startsWith()/endsWith()`
 - Numbers/Date/DateTime/Time: `between(min, max)`
