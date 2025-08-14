@@ -46,7 +46,7 @@ kintone-as-code init
 # 基本（デフォルトで query / record-schema も生成）
 kintone-as-code export --app-id 123 --name customer-app
 
-# 生成を抑止（後方互換の --with-* も可）
+# 生成を抑止
 kintone-as-code export --app-id 123 --name customer-app --no-query
 kintone-as-code export --app-id 123 --name customer-app --no-record-schema
 
@@ -138,8 +138,7 @@ export default defineAppSchema({
 
 ### アプリIDの管理
 
-`utils/app-ids.ts` にアプリIDをまとめて管理します（`export const APP_IDS = { ... } as const;`）。
-環境変数方式も利用できますが、現在は `APP_IDS` に集約する運用を推奨します。
+`utils/app-ids.ts` にアプリIDをまとめて管理します（`export const APP_IDS = { ... } as const;`）。`export` 実行時に自動更新されます。
 
 ### 設定ファイル
 
@@ -399,11 +398,11 @@ const records = await client.record.getRecords({
 });
 ```
 
-#### 補助メソッド
+### 補助メソッド
 
 - 文字列: `contains()/startsWith()/endsWith()`
 - 数値/日付/日時/時間: `between(min, max)`
-- 関数（未サポート名）: `customDateFunction(name, ...args)` / `customUserFunction(name, ...args)`
+- 関数（カスタム名）: `customDateFunction(name, ...args)` / `customUserFunction(name, ...args)`
 
 ### クエリビルダーの機能
 
@@ -413,7 +412,7 @@ const records = await client.record.getRecords({
 - **複雑な条件**: `and()`、`or()`、`not()` で組み合わせ
 - **自動補完**: IDEがフィールドとメソッドの候補を提供
 
-注: クエリビルダ機能は公開APIとしては提供していません。内部的にはFP APIに基づく設計であり、将来的に公開する場合もFP方針を前提とします。
+注: クエリビルダー機能は公開APIとしては提供していません。内部的にはFP APIに基づく設計であり、将来的に公開する場合もFP方針を前提とします。
 
 ### 補足: raw() の非提供
 
@@ -448,7 +447,7 @@ const records = await client.record.getRecords({
 ## ベストプラクティス
 
 1. **バージョン管理**: アプリ設定の変更を追跡するため、スキーマファイルをコミット
-2. **環境変数**: 複数環境対応のため、アプリIDには環境変数を使用
+2. **APP_IDSの一元管理**: 複数環境対応のため、アプリIDは `utils/app-ids.ts` の `APP_IDS` で管理（export時に自動更新）
 3. **型安全性**: TypeScriptの型チェックを活用して設定エラーを早期発見
 4. **コードレビュー**: 開発プロセスの一環としてスキーマ変更をレビュー
 5. **レコードバリデーション**: カスタマイズコードで生成されたレコードスキーマを使用して型安全なデータ処理を実現

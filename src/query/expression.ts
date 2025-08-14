@@ -67,11 +67,13 @@ const formatValue = (value: FieldValue): string => {
   }
 
   // 関数の場合（TODAY()、LOGINUSER()など）
+  // セキュリティ: 許可された関数のみ受け入れる
+  const allowedFunctions = /^(TODAY|LOGINUSER|NOW)\(\)$|^(FROM_TODAY|THIS_MONTH|DATE_RANGE_\w+|USER_IN_GROUP)\([^)]*\)$/;
   if (
     typeof value === 'string' &&
-    (value.endsWith('()') || (value.includes('(') && value.includes(')')))
+    allowedFunctions.test(value)
   ) {
-    // 関数呼び出しの場合はそのまま返す
+    // 許可された関数呼び出しの場合はそのまま返す
     return value;
   }
 
@@ -178,10 +180,11 @@ export const toString = (
       return `not (${inner})`;
     }
 
-    default:
+    default: {
       // 型の網羅性チェック
       const _exhaustive: never = expr;
       void _exhaustive;
       throw new Error(`Unknown expression type`);
+    }
   }
 };

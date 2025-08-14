@@ -79,7 +79,8 @@ describe('export command with --with-query option', () => {
         test: {
           auth: {
             baseUrl: 'https://test.cybozu.com',
-            apiToken: 'test-token',
+            username: 'user',
+            password: 'pass',
           },
         },
       },

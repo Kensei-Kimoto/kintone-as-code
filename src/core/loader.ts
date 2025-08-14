@@ -42,13 +42,13 @@ export async function loadSchema(schemaPath: string): Promise<AppSchema> {
       const shimPath = path.join(tempDir, 'kac-shim.mjs');
       await fs.writeFile(
         shimPath,
-        [
-          'export const defineAppSchema = (schema) => schema;\n',
-          'export const getAppId = (name) => {',
-          '  const v = process.env[name];',
-          '  return v == null || v === "" ? "0" : String(v);',
-          '};\n',
-        ].join('')
+                  [
+            'export const defineAppSchema = (schema) => schema;\n',
+            'export const getAppId = (name) => {',
+            '  const v = process.env[name];',
+            '  return v == null || v === "" ? "0" : String(v);',
+            '};\n',
+          ].join('')
       );
 
       const esb = await import('esbuild');
