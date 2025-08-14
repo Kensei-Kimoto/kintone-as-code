@@ -115,13 +115,13 @@ yargs(hideBin(process.argv))
         type: 'boolean',
         default: false,
         description:
-          'Include related record fields as dot-notation (default: false)',
+          'Include related record fields using dot-notation (default: false)',
       },
       'include-subtable': {
         type: 'boolean',
         default: false,
         description:
-          'Include subtable child fields (in/not in only) (default: false)',
+          'Include subtable child fields (only supports in/not in operators) (default: false)',
       },
     },
     (argv: any) => {

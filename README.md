@@ -418,8 +418,8 @@ const records = await client.record.getRecords({
 ### Helper methods
 
 - Strings: `contains()/startsWith()/endsWith()`
-- Numbers/Date/DateTime/Time: `between(min, max)`
-- Functions (unsupported names): `customDateFunction(name, ...args)` / `customUserFunction(name, ...args)`
+- Numbers, Date, DateTime, and Time: `between(min, max)`
+- Custom function names: `customDateFunction(name, ...args)` / `customUserFunction(name, ...args)`
 
 ### Query Features
 
@@ -465,7 +465,7 @@ Direct raw query insertion via `raw()` is not provided. Instead, use
 ## Best Practices
 
 1. **Version Control**: Commit your schema files to track app configuration changes
-2. **Environment Variables**: Use environment variables for app IDs to support multiple environments
+2. **Centralized APP_IDS**: Manage app IDs in `utils/app-ids.ts` (kept up-to-date by export)
 3. **Type Safety**: Leverage TypeScript's type checking to catch configuration errors early
 4. **Code Review**: Review schema changes as part of your development process
 5. **Record Validation**: Use generated record schemas in your customization code for type-safe data handling
