@@ -1,6 +1,7 @@
 import { Expression, condition, and } from './expression.js';
 import {
   DateFunction,
+  UserFunction,
   formatFunction,
   type KintoneFunction,
 } from './functions.js';
@@ -62,10 +63,42 @@ const baseOps = (code: string) => ({
   },
 });
 
+// 文字列専用の基本操作
+const stringBaseOps = (code: string) => ({
+  equals(value: string): Expression {
+    return condition(code, '=', formatFieldValue(value));
+  },
+  notEquals(value: string): Expression {
+    return condition(code, '!=', formatFieldValue(value));
+  },
+  in(values: ReadonlyArray<string>): Expression {
+    return condition(code, 'in', values);
+  },
+  notIn(values: ReadonlyArray<string>): Expression {
+    return condition(code, 'not in', values);
+  },
+});
+
+// 数値専用の基本操作
+const numberBaseOps = (code: string) => ({
+  equals(value: number): Expression {
+    return condition(code, '=', formatFieldValue(value));
+  },
+  notEquals(value: number): Expression {
+    return condition(code, '!=', formatFieldValue(value));
+  },
+  in(values: ReadonlyArray<number>): Expression {
+    return condition(code, 'in', values);
+  },
+  notIn(values: ReadonlyArray<number>): Expression {
+    return condition(code, 'not in', values);
+  },
+});
+
 // 文字列フィールド（like/not like を追加）
 export const createStringField = (code: string) => {
   return Object.freeze({
-    ...baseOps(code),
+    ...stringBaseOps(code),
     like(pattern: string): Expression {
       return condition(code, 'like', pattern);
     },
@@ -87,7 +120,7 @@ export const createStringField = (code: string) => {
 // 数値フィールド（比較演算子）
 export const createNumberField = (code: string) => {
   return Object.freeze({
-    ...baseOps(code),
+    ...numberBaseOps(code),
     greaterThan(value: number): Expression {
       return condition(code, '>', value);
     },

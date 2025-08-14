@@ -29,7 +29,14 @@
       "mcp__serena__onboarding",
       "mcp__linear-server__list_issues",
       "mcp__serena__list_dir",
-      "mcp__linear-server__create_issue"
+      "mcp__linear-server__create_issue",
+      "mcp__linear-server__list_my_issues",
+      "Bash(git add:*)",
+      "mcp__serena__find_file",
+      "Bash(gh pr view:*)",
+      "Bash(npx vitest run *)",
+      "Bash(npm test)",
+      "Bash(npm run lint)"
     ],
     "deny": []
   }
