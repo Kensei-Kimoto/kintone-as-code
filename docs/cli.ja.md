@@ -52,6 +52,10 @@ kintone-as-code apply --schema apps/sales.schema.ts --env dev
 kintone-as-code apply --app-id 123 --schema apps/sales.schema.ts --env dev
 ```
 
+オプション:
+
+- `--add-subtable-child`（実験的）: スキーマに存在しアプリに未作成の「サブテーブル子フィールド」を自動追加します。
+
 ## create
 
 ```bash

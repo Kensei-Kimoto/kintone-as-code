@@ -36,13 +36,15 @@ type PrimitiveFieldValue = string | number | boolean | null | undefined;
 type AllowedFunction = KintoneFunction; // DateFunction | UserFunction
 type AllowedFieldValue = PrimitiveFieldValue | AllowedFunction;
 
+const isKintoneFunction = (value: unknown): value is KintoneFunction =>
+  typeof value === 'object' &&
+  value !== null &&
+  '_tag' in (value as Record<string, unknown>) &&
+  (value as KintoneFunction)._tag === 'function';
+
 const formatFieldValue = (value: AllowedFieldValue): PrimitiveFieldValue => {
-  if (
-    value &&
-    typeof value === 'object' &&
-    (value as any)._tag === 'function'
-  ) {
-    return formatFunction(value as AllowedFunction);
+  if (isKintoneFunction(value)) {
+    return formatFunction(value);
   }
   return value as PrimitiveFieldValue;
 };

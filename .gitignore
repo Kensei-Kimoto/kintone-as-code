@@ -65,9 +65,10 @@ temp/
 debug-*.js
 check-*.js
 apps/test-*.schema.ts
+# Generated query builders (do not commit)
+apps/*.query.ts
 test-npm-package/
 test-v*/
 test-*/
 
-apps/
 utils/app-ids.ts

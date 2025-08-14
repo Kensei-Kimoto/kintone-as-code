@@ -170,7 +170,7 @@ yargs(hideBin(process.argv))
         type: 'boolean',
         default: false,
         description:
-          'Experimental: attempt to add missing subtable child fields automatically (not implemented yet)',
+          'Experimental: add missing subtable child fields automatically',
       },
     },
     (argv: any) => {

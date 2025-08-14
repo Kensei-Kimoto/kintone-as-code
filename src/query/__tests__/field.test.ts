@@ -1,4 +1,13 @@
-import { $1toString as expressionToString,$2 } from '../field.js';
+import { describe, it, expect } from 'vitest';
+import { toString as expressionToString } from '../expression.js';
+import {
+  createStringField,
+  createNumberField,
+  createDropdownField,
+  createCheckboxField,
+  createDateField,
+  createUserField,
+} from '../field.js';
 import { TODAY, FROM_TODAY, LOGINUSER, NOW } from '../functions.js';
 
 describe('StringField', () => {
@@ -25,7 +34,9 @@ describe('StringField', () => {
   });
 
   it('contains/startsWith/endsWith が使える', () => {
-    expect(expressionToString(会社名Field.contains('株式'))).toBe('会社名 like "*株式*"');
+    expect(expressionToString(会社名Field.contains('株式'))).toBe(
+      '会社名 like "*株式*"'
+    );
     expect(expressionToString(会社名Field.startsWith('サイ'))).toBe(
       '会社名 like "サイ*"'
     );
@@ -36,7 +47,9 @@ describe('StringField', () => {
 
   it('in演算子が使える', () => {
     const expr = 会社名Field.in(['サイボウズ', 'kintone']);
-    expect(expressionToString(expr)).toBe('会社名 in ("サイボウズ", "kintone")');
+    expect(expressionToString(expr)).toBe(
+      '会社名 in ("サイボウズ", "kintone")'
+    );
   });
 
   it('notIn演算子が使える', () => {
@@ -193,7 +206,9 @@ describe('UserField', () => {
 
   it('notIn演算子が使える', () => {
     const expr = 担当者Field.notIn(['システム', 'ゲスト']);
-    expect(expressionToString(expr)).toBe('担当者 not in ("システム", "ゲスト")');
+    expect(expressionToString(expr)).toBe(
+      '担当者 not in ("システム", "ゲスト")'
+    );
   });
 });
 

@@ -178,10 +178,11 @@ export const toString = (
       return `not (${inner})`;
     }
 
-    default:
+    default: {
       // 型の網羅性チェック
       const _exhaustive: never = expr;
       void _exhaustive;
       throw new Error(`Unknown expression type`);
+    }
   }
 };
