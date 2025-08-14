@@ -67,9 +67,7 @@ check-*.js
 apps/test-*.schema.ts
 # Generated query builders (do not commit)
 apps/*.query.ts
-test-npm-package/
-test-v*/
-test-*/
+/test-*/
 
 utils/app-ids.ts
 # Local developer settings (do not commit)

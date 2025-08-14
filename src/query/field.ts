@@ -33,18 +33,17 @@ type DateValue = string | DateFunction;
 
 // 値のフォーマット（関数対応）
 type PrimitiveFieldValue = string | number | boolean | null | undefined;
-type AllowedFunction = KintoneFunction; // DateFunction | UserFunction
+type AllowedFunction = DateFunction | UserFunction;
 type AllowedFieldValue = PrimitiveFieldValue | AllowedFunction;
 
+const isKintoneFunction = (v: unknown): v is KintoneFunction =>
+  typeof v === 'object' && v !== null && (v as { _tag?: unknown })._tag === 'function';
+
 const formatFieldValue = (value: AllowedFieldValue): PrimitiveFieldValue => {
-  if (
-    value &&
-    typeof value === 'object' &&
-    (value as any)._tag === 'function'
-  ) {
-    return formatFunction(value as AllowedFunction);
+  if (isKintoneFunction(value)) {
+    return formatFunction(value);
   }
-  return value as PrimitiveFieldValue;
+  return value;
 };
 
 // 汎用の等価系（不変オブジェクトにメソッドを実装）
