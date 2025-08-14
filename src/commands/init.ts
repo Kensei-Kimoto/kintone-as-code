@@ -12,8 +12,6 @@ export default {
         baseUrl: process.env.KINTONE_BASE_URL,
         username: process.env.KINTONE_USERNAME,
         password: process.env.KINTONE_PASSWORD,
-        // or use API token
-        // apiToken: process.env.KINTONE_API_TOKEN,
       }
     },
     development: {
@@ -21,27 +19,21 @@ export default {
         baseUrl: process.env.KINTONE_DEV_BASE_URL || process.env.KINTONE_BASE_URL,
         username: process.env.KINTONE_DEV_USERNAME || process.env.KINTONE_USERNAME,
         password: process.env.KINTONE_DEV_PASSWORD || process.env.KINTONE_PASSWORD,
-        // or use API token
-        // apiToken: process.env.KINTONE_DEV_API_TOKEN,
       }
     }
   }
 };
 `;
 
-const envExampleTemplate = `# Kintone authentication
+const envExampleTemplate = `# Kintone authentication (CLI はユーザー/パスワードのみ対応)
 KINTONE_BASE_URL=https://your-domain.cybozu.com
 KINTONE_USERNAME=your-username
 KINTONE_PASSWORD=your-password
-# or use API token instead of username/password
-# KINTONE_API_TOKEN=your-api-token
 
 # Development environment (optional - defaults to production values if not set)
 # KINTONE_DEV_BASE_URL=https://dev-domain.cybozu.com
 # KINTONE_DEV_USERNAME=dev-username
 # KINTONE_DEV_PASSWORD=dev-password
-# or use API token
-# KINTONE_DEV_API_TOKEN=your-dev-api-token
 `;
 
 const gitignoreTemplate = `# Dependencies
@@ -85,17 +77,23 @@ const helpersTemplate = `// Helper functions for kintone-as-code schemas
 /**
  * Helper function to define app schema with type safety
  */
-export function defineAppSchema<T extends { 
-  appId: number | string; 
-  name: string; 
+export function defineAppSchema<T extends {
+  appId: number | string;
+  name: string;
   description?: string;
-  fieldsConfig: any 
+  fieldsConfig: any
 }>(schema: T): T {
   return schema;
 }
 `;
 
-export const init = async ({ force }: { force?: boolean | undefined }) => {
+export const init = async ({
+  force,
+  noEsmRewrite,
+}: {
+  force?: boolean | undefined;
+  noEsmRewrite?: boolean;
+}) => {
   const configPath = path.join(process.cwd(), 'kintone-as-code.config.js');
   const envExamplePath = path.join(process.cwd(), '.env.example');
   const gitignorePath = path.join(process.cwd(), '.gitignore');
@@ -113,7 +111,12 @@ export const init = async ({ force }: { force?: boolean | undefined }) => {
     }
   };
 
-  if (!force && (await fileExists(configPath) || await fileExists(envExamplePath) || await fileExists(appsPath))) {
+  if (
+    !force &&
+    ((await fileExists(configPath)) ||
+      (await fileExists(envExamplePath)) ||
+      (await fileExists(appsPath)))
+  ) {
     console.error('Error: Files already exist. Use --force to overwrite.');
     return;
   }
@@ -125,23 +128,26 @@ export const init = async ({ force }: { force?: boolean | undefined }) => {
   await fs.mkdir(utilsPath, { recursive: true });
   await fs.writeFile(helpersPath, helpersTemplate.trim());
 
-  // Update package.json to use ES modules if it exists
-  if (await fileExists(packageJsonPath)) {
+  // Update package.json to use ES modules if it exists (unless suppressed)
+  if (!noEsmRewrite && (await fileExists(packageJsonPath))) {
     try {
       const packageJsonContent = await fs.readFile(packageJsonPath, 'utf-8');
       const packageJson = JSON.parse(packageJsonContent);
-      
+
       // Set type to module if not already set
       if (packageJson.type !== 'module') {
         packageJson.type = 'module';
       }
-      
+
       // Add necessary dependencies if not present
       if (!packageJson.dependencies) {
         packageJson.dependencies = {};
       }
-      
+
       // Add required dependencies for schemas to work
+      if (!packageJson.dependencies['kintone-as-code']) {
+        packageJson.dependencies['kintone-as-code'] = '^0.6.0';
+      }
       if (!packageJson.dependencies['kintone-effect-schema']) {
         packageJson.dependencies['kintone-effect-schema'] = '^0.8.0';
       }
@@ -151,7 +157,7 @@ export const init = async ({ force }: { force?: boolean | undefined }) => {
       if (!packageJson.dependencies['effect']) {
         packageJson.dependencies['effect'] = '^3.0.0';
       }
-      
+
       // Add helpful scripts
       if (!packageJson.scripts) {
         packageJson.scripts = {};
@@ -165,32 +171,48 @@ export const init = async ({ force }: { force?: boolean | undefined }) => {
       if (!packageJson.scripts['create']) {
         packageJson.scripts['create'] = 'kintone-as-code create';
       }
-      
-      await fs.writeFile(packageJsonPath, JSON.stringify(packageJson, null, 2) + '\n');
+
+      await fs.writeFile(
+        packageJsonPath,
+        JSON.stringify(packageJson, null, 2) + '\n'
+      );
       console.log('Updated package.json with ES modules and dependencies');
     } catch (error) {
-      console.warn('Could not update package.json. Please check the file manually.');
+      console.warn(
+        'Could not update package.json. Please check the file manually.'
+      );
     }
-  } else {
-    // Create a complete package.json if it doesn't exist
+  } else if (!(await fileExists(packageJsonPath))) {
+    // Create a package.json if it doesn't exist
     const completePackageJson = {
       name: path.basename(process.cwd()),
       version: '1.0.0',
-      type: 'module',
+      // Respect suppression: omit type: module when noEsmRewrite is true
+      ...(noEsmRewrite ? {} : { type: 'module' }),
       description: 'Kintone application managed as code',
       scripts: {
-        'export': 'kintone-as-code export',
-        'apply': 'kintone-as-code apply',
-        'create': 'kintone-as-code create'
+        export: 'kintone-as-code export',
+        apply: 'kintone-as-code apply',
+        create: 'kintone-as-code create',
       },
       dependencies: {
+        'kintone-as-code': '^0.6.0',
         'kintone-effect-schema': '^0.8.0',
-        'dotenv': '^16.3.1',
-        'effect': '^3.0.0'
-      }
-    };
-    await fs.writeFile(packageJsonPath, JSON.stringify(completePackageJson, null, 2) + '\n');
-    console.log('Created package.json with ES modules and dependencies');
+        dotenv: '^16.3.1',
+        effect: '^3.0.0',
+      },
+    } as Record<string, unknown>;
+    await fs.writeFile(
+      packageJsonPath,
+      JSON.stringify(completePackageJson, null, 2) + '\n'
+    );
+    console.log(
+      noEsmRewrite
+        ? 'Created package.json without ESM rewrite (CJS-friendly)'
+        : 'Created package.json with ES modules and dependencies'
+    );
+  } else if (noEsmRewrite) {
+    console.log('Skipped package.json ESM rewrite as requested.');
   }
 
   console.log('kintone-as-code initialized successfully!');

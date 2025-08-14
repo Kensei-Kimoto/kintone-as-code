@@ -38,6 +38,7 @@ export {
   type UserFunction,
   type KintoneFunction,
   TODAY,
+  NOW,
   FROM_TODAY,
   THIS_WEEK,
   THIS_MONTH,
@@ -50,8 +51,7 @@ export {
   customUserFunction,
 } from './functions.js';
 
-// Query builder class
-export { QueryBuilder } from './builder.js';
+// OO facade removed: use FP API only
 
 // Functional Query Builder (FP API)
 export {

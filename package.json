@@ -12,10 +12,6 @@
     ".": {
       "import": "./dist/index.js",
       "types": "./dist/index.d.ts"
-    },
-    "./query": {
-      "import": "./dist/query/index.js",
-      "types": "./dist/query/index.d.ts"
     }
   },
   "scripts": {
@@ -26,6 +22,8 @@
     "test:integration": "npm run build && vitest run src/__tests__/cli.integration.test.ts",
     "test:all": "npm run test:unit && npm run test:integration",
     "test:coverage": "vitest run --coverage",
+    "prepack": "npm run build",
+    "pack:test": "rm -rf test-npm-package *.tgz && npm pack && mkdir -p test-npm-package && cd test-npm-package && npm init -y > /dev/null 2>&1 && npm install ../kintone-as-code-*.tgz --no-audit --no-fund > /dev/null 2>&1 && npx -y kintone-as-code --help > /dev/null 2>&1 && echo 'OK: CLI runs from tgz'",
     "lint": "eslint src --ext ts",
     "lint:fix": "eslint src --ext ts --fix",
     "format": "prettier --write src/**/*.ts",
@@ -48,22 +46,26 @@
     "chalk": "^5.3.0",
     "dotenv": "^16.3.1",
     "effect": "^3.0.0",
-    "esbuild": "^0.19.0",
+    "esbuild": "0.25.9",
     "kintone-effect-schema": "^0.8.0",
     "ora": "^6.3.0",
     "yargs": "^18.0.0"
+  },
+  "overrides": {
+    "esbuild": "0.25.9"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
     "@types/yargs": "^17.0.33",
     "@typescript-eslint/eslint-plugin": "^6.0.0",
     "@typescript-eslint/parser": "^6.0.0",
-    "@vitest/coverage-v8": "^1.6.1",
+    "@vitest/coverage-v8": "^2.1.9",
     "eslint": "^8.0.0",
     "prettier": "^3.0.0",
     "tsx": "^4.0.0",
-    "typescript": "^5.0.0",
-    "vitest": "^1.0.0"
+    "typescript": "^5.9.2",
+    "vite": "^6.3.5",
+    "vitest": "^2.1.9"
   },
   "files": [
     "dist",

@@ -7,7 +7,7 @@ kintoneアプリの設定をコードで管理し、Effect-TSによる型安全�
 - Functional Core, Imperative Shell を採用
 - Coreは純関数（`src/query/*`）: 式、フィールド、ビルダー（FP）、バリデーション
 - Shellは副作用（`src/cli.ts`, `src/commands/*`, 生成器）
-- メソッドチェーンのOOファサードは互換維持のために存在し、内部はFPコア
+- 公開APIはFPのみ。OOファサードは提供しません（メソッドチェーンの `createQuery()` は生成物 `apps/{name}.query.ts` が持つヘルパであり、パッケージの公開APIではありません）
 
 ## 特徴
 
@@ -46,7 +46,7 @@ kintone-as-code init
 # 基本（デフォルトで query / record-schema も生成）
 kintone-as-code export --app-id 123 --name customer-app
 
-# 生成を抑止（後方互換の --with-* も可）
+# 生成を抑止
 kintone-as-code export --app-id 123 --name customer-app --no-query
 kintone-as-code export --app-id 123 --name customer-app --no-record-schema
 
@@ -69,7 +69,8 @@ kintone-as-code export --app-id 123 --name customer-app \
 エクスポートされたスキーマは、完全な型安全性のためにkintone-effect-schemaを使用します：
 
 ```typescript
-import { defineAppSchema, getAppId } from 'kintone-as-code';
+import { defineAppSchema } from 'kintone-as-code';
+import { APP_IDS } from './utils/app-ids';
 import type {
   SingleLineTextFieldProperties,
   NumberFieldProperties,
@@ -125,7 +126,8 @@ export const appFieldsConfig = {
 
 // アプリスキーマ定義
 export default defineAppSchema({
-  appId: getAppId('KINTONE_CUSTOMER_APP_ID'),
+  // APP_IDS 方式（推奨: 生成物に合わせて一元管理）
+  appId: APP_IDS.CUSTOMER_APP,
   name: '顧客管理',
   description: '顧客情報管理アプリ',
   fieldsConfig: appFieldsConfig,
@@ -136,8 +138,7 @@ export default defineAppSchema({
 
 ### アプリIDの管理
 
-`utils/app-ids.ts` にアプリIDをまとめて管理します（`export const APP_IDS = { ... } as const;`）。
-環境変数方式も利用できますが、現在は `APP_IDS` に集約する運用を推奨します。
+`utils/app-ids.ts` にアプリIDをまとめて管理します（`export const APP_IDS = { ... } as const;`）。`export` 実行時に自動更新されます。
 
 ### 設定ファイル
 
@@ -178,10 +179,12 @@ export default {
 
 ### ドキュメント索引
 
+- 概要（IaCの全体像）: `docs/overview.ja.md`
 - 設定: `docs/config.ja.md`
 - 生成/レコードスキーマ: `docs/converter-and-schemas.ja.md`
 - Export/Apply/Create: `docs/export-apply-create.ja.md`
 - クエリビルダー: `docs/query-builder.ja.md`
+- クエリ クックブック: `docs/query-cookbook.ja.md`
 - アーキテクチャ: `docs/architecture.ja.md`
 
 ### init
@@ -260,8 +263,11 @@ import {
 
 // クライアントの初期化
 const client = new KintoneRestAPIClient({
-  baseUrl: 'https://example.cybozu.com',
-  auth: { apiToken: 'YOUR_API_TOKEN' },
+  baseUrl: process.env.KINTONE_BASE_URL!,
+  auth: {
+    username: process.env.KINTONE_USERNAME!,
+    password: process.env.KINTONE_PASSWORD!,
+  },
 });
 
 // レコードの取得とバリデーション（自動正規化付き）
@@ -363,7 +369,7 @@ import {
   appendOrder,
   withLimit,
   build,
-} from 'kintone-as-code/query';
+} from 'kintone-as-code';
 
 const q2 = build(
   withLimit(100)(
@@ -392,11 +398,11 @@ const records = await client.record.getRecords({
 });
 ```
 
-#### 補助メソッド
+### 補助メソッド
 
 - 文字列: `contains()/startsWith()/endsWith()`
 - 数値/日付/日時/時間: `between(min, max)`
-- 関数（未サポート名）: `customDateFunction(name, ...args)` / `customUserFunction(name, ...args)`
+- 関数（カスタム名）: `customDateFunction(name, ...args)` / `customUserFunction(name, ...args)`
 
 ### クエリビルダーの機能
 
@@ -405,6 +411,13 @@ const records = await client.record.getRecords({
 - **kintone関数**: `TODAY()`、`LOGINUSER()`、`THIS_MONTH()` などをサポート
 - **複雑な条件**: `and()`、`or()`、`not()` で組み合わせ
 - **自動補完**: IDEがフィールドとメソッドの候補を提供
+
+注: クエリビルダー機能は公開APIとしては提供していません。内部的にはFP APIに基づく設計であり、将来的に公開する場合もFP方針を前提とします。
+
+### 補足: raw() の非提供
+
+生クエリを直接挿入する `raw()` は提供しません。代替として、
+`contains/startsWith/endsWith`、`between(min, max)`、`customDateFunction/customUserFunction` を利用してください。
 
 ### フィールドタイプ別の例
 
@@ -434,7 +447,7 @@ const records = await client.record.getRecords({
 ## ベストプラクティス
 
 1. **バージョン管理**: アプリ設定の変更を追跡するため、スキーマファイルをコミット
-2. **環境変数**: 複数環境対応のため、アプリIDには環境変数を使用
+2. **APP_IDSの一元管理**: 複数環境対応のため、アプリIDは `utils/app-ids.ts` の `APP_IDS` で管理（export時に自動更新）
 3. **型安全性**: TypeScriptの型チェックを活用して設定エラーを早期発見
 4. **コードレビュー**: 開発プロセスの一環としてスキーマ変更をレビュー
 5. **レコードバリデーション**: カスタマイズコードで生成されたレコードスキーマを使用して型安全なデータ処理を実現

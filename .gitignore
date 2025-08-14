@@ -65,6 +65,11 @@ temp/
 debug-*.js
 check-*.js
 apps/test-*.schema.ts
-test-npm-package/
-test-v*/
-test-*/
+# Generated query builders (do not commit)
+apps/*.query.ts
+/test-*/
+
+utils/app-ids.ts
+# Local developer settings (do not commit)
+.claude/settings.local.json
+ 

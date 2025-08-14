@@ -14,19 +14,68 @@ export const convertKintoneFieldsToSchema = (
     const parsed = Schema.decodeUnknownSync(FormFieldsSchema)(rawFields);
     // READMEスタイル: 個別フィールド定義 + appFieldsConfig（固定）
     const classicCode = generateFieldsConfigCode(parsed.properties as any);
+    // 安全な式生成（コードインジェクション回避）
+    const safeNameExpr = JSON.stringify(appName ?? 'Exported App');
+    const appIdExpr = appConstantName
+      ? /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(appConstantName)
+        ? `.${appConstantName}`
+        : `[${JSON.stringify(appConstantName)}]`
+      : `.MY_APP`;
     return `${classicCode}
 
 import { defineAppSchema } from 'kintone-as-code';
 import { APP_IDS } from '../utils/app-ids.js';
 
 export default defineAppSchema({
-  appId: APP_IDS.${appConstantName || 'MY_APP'},
-  name: '${appName || 'Exported App'}',
+  appId: APP_IDS${appIdExpr},
+  name: ${safeNameExpr},
   description: 'This schema was exported from kintone.',
   fieldsConfig: appFieldsConfig
 });`;
   } catch (error) {
-    console.error('Failed to parse kintone fields:', error);
+    // バリデーションに失敗した場合でも、最低限の `properties` があれば寛容にフォールバック
+    console.error('Failed to parse kintone fields (will try fallback):', error);
+    try {
+      if (
+        typeof rawFields === 'object' &&
+        rawFields !== null &&
+        'properties' in (rawFields as Record<string, unknown>) &&
+        typeof (rawFields as any).properties === 'object'
+      ) {
+        const props = (rawFields as any).properties as Record<string, unknown>;
+        // プロパティの最低限バリデーション: 各フィールドが type:string を持つこと
+        const allFieldsHaveType = Object.values(props).every(
+          (v) =>
+            typeof v === 'object' &&
+            v !== null &&
+            typeof (v as any).type === 'string'
+        );
+        if (!allFieldsHaveType) {
+          throw new Error('Schema validation failed during export.');
+        }
+        const classicCode = generateFieldsConfigCode(props);
+        const safeNameExpr = JSON.stringify(appName ?? 'Exported App');
+        const appIdExpr = appConstantName
+          ? /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(appConstantName)
+            ? `.${appConstantName}`
+            : `[${JSON.stringify(appConstantName)}]`
+          : `.MY_APP`;
+        return `${classicCode}
+
+import { defineAppSchema } from 'kintone-as-code';
+import { APP_IDS } from '../utils/app-ids.js';
+
+export default defineAppSchema({
+  appId: APP_IDS${appIdExpr},
+  name: ${safeNameExpr},
+  description: 'This schema was exported from kintone.',
+  fieldsConfig: appFieldsConfig
+});`;
+      }
+    } catch (fallbackError) {
+      // フォールバックも失敗した場合は従来どおりエラー
+      console.error('Fallback schema generation also failed:', fallbackError);
+    }
     if (hasErrorsProperty(error)) {
       console.error(
         'Validation errors:',

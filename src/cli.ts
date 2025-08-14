@@ -54,9 +54,19 @@ yargs(hideBin(process.argv))
         type: 'boolean',
         description: 'Force overwrite existing files',
       },
+      'no-esm-rewrite': {
+        type: 'boolean',
+        default: false,
+        description:
+          "Do not rewrite existing package.json to ESM (suppress 'type: module' update)",
+      },
     },
     (argv: any) => {
-      init({ force: argv.force as boolean | undefined });
+      const opts: any = { force: argv.force as boolean | undefined };
+      if ((argv as any)['no-esm-rewrite']) {
+        opts.noEsmRewrite = true;
+      }
+      init(opts);
     }
   )
   .command(
@@ -105,13 +115,13 @@ yargs(hideBin(process.argv))
         type: 'boolean',
         default: false,
         description:
-          'Include related record fields as dot-notation (default: false)',
+          'Include related record fields using dot-notation (default: false)',
       },
       'include-subtable': {
         type: 'boolean',
         default: false,
         description:
-          'Include subtable child fields (in/not in only) (default: false)',
+          'Include subtable child fields (only supports in/not in operators) (default: false)',
       },
     },
     (argv: any) => {
@@ -156,12 +166,21 @@ yargs(hideBin(process.argv))
         type: 'string',
         description: 'Environment name',
       },
+      'add-subtable-child': {
+        type: 'boolean',
+        default: false,
+        description:
+          'Experimental: add missing subtable child fields automatically',
+      },
     },
     (argv: any) => {
       const a = argv as ApplyArgs;
-      const options: Parameters<typeof applyCommand>[0] = {
+      const options: any = {
         schema: a.schema,
         env: a.env,
+        addSubtableChild: ((a as any)['add-subtable-child']
+          ? true
+          : false) as boolean,
       };
       if (a['app-id']) {
         options.appId = a['app-id'];

@@ -13,7 +13,7 @@ Manage kintone app configurations as code with type safety using Effect-TS.
 - Functional Core, Imperative Shell
 - Core (pure functions in `src/query/*`): expressions, fields, FP builder, validation
 - Shell (side effects): CLI/commands and code generator
-- OO method-chaining facade remains for compatibility; internally backed by FP core
+- Public API is FP-only. No OO facade is provided. The method-chaining `createQuery()` is a helper emitted in generated files `apps/{name}.query.ts`, not a public package API.
 
 ## Features
 
@@ -91,7 +91,8 @@ This creates a new app with all fields defined in the schema.
 The exported schema uses kintone-effect-schema for complete type safety:
 
 ```typescript
-import { defineAppSchema, getAppId } from 'kintone-as-code';
+import { defineAppSchema } from 'kintone-as-code';
+import { APP_IDS } from './utils/app-ids';
 import type {
   SingleLineTextFieldProperties,
   NumberFieldProperties,
@@ -147,7 +148,8 @@ export const appFieldsConfig = {
 
 // App schema definition
 export default defineAppSchema({
-  appId: getAppId('KINTONE_CUSTOMER_APP_ID'),
+  // APP_IDS central registry (recommended to align with generated files)
+  appId: APP_IDS.CUSTOMER_APP,
   name: 'Customer Management',
   description: 'Customer information management app',
   fieldsConfig: appFieldsConfig,
@@ -156,14 +158,9 @@ export default defineAppSchema({
 
 ## Configuration
 
-### Environment Variables
+### App ID management
 
-Set your app IDs as environment variables:
-
-```bash
-KINTONE_CUSTOMER_APP_ID=123
-KINTONE_PRODUCT_APP_ID=456
-```
+Use `utils/app-ids.ts` to centrally manage app IDs. It is automatically updated by the `export` command.
 
 ### Configuration File
 
@@ -201,6 +198,16 @@ This tool is designed to work seamlessly with [kintone-effect-schema](https://gi
 - Automatic handling of empty values
 
 ## Commands
+
+### Docs index
+
+- Overview (IaC): `docs/overview.ja.md`
+- Config: `docs/config.ja.md`
+- Converter & Schemas: `docs/converter-and-schemas.ja.md`
+- Export/Apply/Create: `docs/export-apply-create.ja.md`
+- Query Builder: `docs/query-builder.ja.md`
+- Query Cookbook: `docs/query-cookbook.ja.md`
+- Architecture: `docs/architecture.ja.md`
 
 ### init
 
@@ -290,8 +297,11 @@ import {
 
 // Initialize client
 const client = new KintoneRestAPIClient({
-  baseUrl: 'https://example.cybozu.com',
-  auth: { apiToken: 'YOUR_API_TOKEN' },
+  baseUrl: process.env.KINTONE_BASE_URL!,
+  auth: {
+    username: process.env.KINTONE_USERNAME!,
+    password: process.env.KINTONE_PASSWORD!,
+  },
 });
 
 // Fetch and validate record with automatic normalization
@@ -381,7 +391,7 @@ import {
   appendOrder,
   withLimit,
   build,
-} from 'kintone-as-code/query';
+} from 'kintone-as-code';
 
 const query2 = build(
   withLimit(100)(
@@ -405,11 +415,11 @@ const records = await client.record.getRecords({
 });
 ```
 
-#### Helper methods
+### Helper methods
 
 - Strings: `contains()/startsWith()/endsWith()`
-- Numbers/Date/DateTime/Time: `between(min, max)`
-- Functions (unsupported names): `customDateFunction(name, ...args)` / `customUserFunction(name, ...args)`
+- Numbers, Date, DateTime, and Time: `between(min, max)`
+- Custom function names: `customDateFunction(name, ...args)` / `customUserFunction(name, ...args)`
 
 ### Query Features
 
@@ -418,6 +428,14 @@ const records = await client.record.getRecords({
 - **kintone functions**: Support for `TODAY()`, `LOGINUSER()`, `THIS_MONTH()`, etc.
 - **Complex conditions**: Combine with `and()`, `or()`, `not()`
 - **Auto-completion**: IDE provides suggestions for fields and methods
+
+Note: The query builder is not exposed as a public API. Internally we follow FP design; if we expose it in the future, the FP API will be the only supported style.
+
+### Note: No `raw()` escape hatch
+
+Direct raw query insertion via `raw()` is not provided. Instead, use
+`contains/startsWith/endsWith`, `between(min, max)`, and
+`customDateFunction/customUserFunction` as escape hatches.
 
 ### Field Type Examples
 
@@ -447,7 +465,7 @@ const records = await client.record.getRecords({
 ## Best Practices
 
 1. **Version Control**: Commit your schema files to track app configuration changes
-2. **Environment Variables**: Use environment variables for app IDs to support multiple environments
+2. **Centralized APP_IDS**: Manage app IDs in `utils/app-ids.ts` (kept up-to-date by export)
 3. **Type Safety**: Leverage TypeScript's type checking to catch configuration errors early
 4. **Code Review**: Review schema changes as part of your development process
 5. **Record Validation**: Use generated record schemas in your customization code for type-safe data handling

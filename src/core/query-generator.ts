@@ -49,7 +49,6 @@ const UNSUPPORTED_FIELD_TYPES = new Set([
   'GROUP',
   'SPACER',
   'LABEL',
-  'REFERENCE_TABLE',
 ]);
 
 // フィールドタイプマッピング取得
@@ -106,7 +105,19 @@ export const generateQueryBuilder = (
     const mapping = getFieldMapping(field.type);
 
     if (!mapping) {
-      // クエリで使用できないフィールドはスキップ（警告コメントは出力しない）
+      // SUBTABLE は includeSubtable を明示的に false 指定されたケースでは完全に無視（コメントも出さない）
+      const includeSubtableExplicit =
+        options &&
+        Object.prototype.hasOwnProperty.call(options, 'includeSubtable');
+      if (
+        field.type === 'SUBTABLE' &&
+        includeSubtableExplicit &&
+        options?.includeSubtable === false
+      ) {
+        return;
+      }
+      // それ以外の未サポートフィールドは警告コメントとして残す
+      warnings.push(`// ${code}: ${field.type} type is not supported`);
       return;
     }
 
@@ -178,6 +189,10 @@ const makeBuilder = (state: ReturnType<typeof createQueryState>) => ({
   },
   orderBy(field: string, direction: 'asc' | 'desc' = 'asc') {
     return makeBuilder(appendOrder(field, direction)(state));
+  },
+  // Typed order helper (FieldNames)
+  orderByField(field: FieldNames, direction: 'asc' | 'desc' = 'asc') {
+    return makeBuilder(appendOrder(field as string, direction)(state));
   },
   limit(n: number) {
     return makeBuilder(withLimit(n)(state));

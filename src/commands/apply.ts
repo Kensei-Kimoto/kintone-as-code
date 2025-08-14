@@ -3,7 +3,12 @@ import { loadSchema } from '../core/loader.js';
 import path from 'path';
 import chalk from 'chalk';
 import type { AnyFieldProperties, FieldType } from 'kintone-effect-schema';
-import { getKintoneClient, isKintoneApiError, updateFormFieldsPartial, addFormFieldsLoose } from '../core/kintone-client.js';
+import {
+  getKintoneClient,
+  isKintoneApiError,
+  updateFormFieldsPartial,
+  addFormFieldsLoose,
+} from '../core/kintone-client.js';
 import type { FieldUpdatePayload } from '../types.js';
 
 // 更新不可能なシステムフィールドタイプ
@@ -15,10 +20,10 @@ const NON_UPDATABLE_FIELD_TYPES = [
   'UPDATED_TIME',
   'STATUS',
   'STATUS_ASSIGNEE',
-  'CATEGORY'
+  'CATEGORY',
 ] as const;
 
-type NonUpdatableFieldType = typeof NON_UPDATABLE_FIELD_TYPES[number];
+type NonUpdatableFieldType = (typeof NON_UPDATABLE_FIELD_TYPES)[number];
 
 // フィールド更新ペイロード - kintone REST APIが受け付ける形式
 // 注意: APIドキュメントによると、更新時はtypeとcodeが必須で、その他は更新したいプロパティのみを含める
@@ -28,6 +33,8 @@ interface ApplyOptions {
   appId?: string;
   schema: string;
   env: string | undefined;
+  // Experimental flag: attempt to add missing subtable child fields automatically
+  addSubtableChild: boolean | undefined;
 }
 
 export const applyCommand = async (options: ApplyOptions) => {
@@ -53,15 +60,27 @@ export const applyCommand = async (options: ApplyOptions) => {
       console.error(chalk.yellow('Please either:'));
       console.error(chalk.yellow('  1. Provide --app-id parameter'));
       console.error(chalk.yellow('  2. Ensure your schema has an appId field'));
-      console.error(chalk.yellow('  3. If using an older schema, check that APP_IDS is properly imported from utils/app-ids.ts'));
+      console.error(
+        chalk.yellow(
+          '  3. If using an older schema, check that APP_IDS is properly imported from utils/app-ids.ts'
+        )
+      );
       process.exit(1);
     }
 
     // Validate app ID
     if (!appId || appId === '0' || appId === 'undefined') {
       console.error(chalk.red(`Error: Invalid app ID: ${appId}`));
-      console.error(chalk.yellow('The schema may be referencing a missing APP_IDS constant.'));
-      console.error(chalk.yellow('Check that utils/app-ids.ts exists and contains the correct app ID.'));
+      console.error(
+        chalk.yellow(
+          'The schema may be referencing a missing APP_IDS constant.'
+        )
+      );
+      console.error(
+        chalk.yellow(
+          'Check that utils/app-ids.ts exists and contains the correct app ID.'
+        )
+      );
       process.exit(1);
     }
 
@@ -91,48 +110,62 @@ export const applyCommand = async (options: ApplyOptions) => {
       properties: Record<string, FieldUpdatePayload>;
     } = {
       app: appId,
-      properties: {}
+      properties: {},
     };
 
     // Compare and prepare updates
     let changesCount = 0;
-    const fieldsConfig = 'properties' in schema.fieldsConfig 
-      ? schema.fieldsConfig.properties 
-      : schema.fieldsConfig;
-    
+    const fieldsConfig =
+      'properties' in schema.fieldsConfig
+        ? schema.fieldsConfig.properties
+        : schema.fieldsConfig;
+
     // Separate new fields and existing fields
     const newFields: Record<string, AnyFieldProperties> = {};
     const existingFieldsToUpdate: Array<[string, AnyFieldProperties]> = [];
-    
+
     for (const [fieldCode, fieldConfig] of Object.entries(fieldsConfig)) {
       const currentField = currentForm.properties[fieldCode];
-      
+
       if (!currentField) {
         // New field - will be added with addFormFields
         newFields[fieldCode] = fieldConfig as AnyFieldProperties;
-        console.log(chalk.yellow(`Field "${fieldCode}" does not exist in app. Will be created.`));
+        console.log(
+          chalk.yellow(
+            `Field "${fieldCode}" does not exist in app. Will be created.`
+          )
+        );
         continue;
       } else {
-        existingFieldsToUpdate.push([fieldCode, fieldConfig as AnyFieldProperties]);
+        existingFieldsToUpdate.push([
+          fieldCode,
+          fieldConfig as AnyFieldProperties,
+        ]);
       }
     }
-    
+
     // Add new fields if any
     if (Object.keys(newFields).length > 0) {
-      console.log(chalk.blue(`\nAdding ${Object.keys(newFields).length} new field(s)...`));
-      
+      console.log(
+        chalk.blue(`\nAdding ${Object.keys(newFields).length} new field(s)...`)
+      );
+
       // Convert readonly properties to mutable for kintone API
       const newFieldsForAPI: Record<string, AnyFieldProperties> = {};
       for (const [code, field] of Object.entries(newFields)) {
         newFieldsForAPI[code] = { ...field };
       }
-      
+
       try {
         await addFormFieldsLoose(client, {
           app: appId,
           properties: newFieldsForAPI,
         });
-        console.log(chalk.green(`✓ Successfully added ${Object.keys(newFields).length} new field(s)`));
+        console.log(
+          chalk.green(
+            `✓ Successfully added ${Object.keys(newFields).length} new field(s)`
+          )
+        );
       } catch (error) {
         console.error(chalk.red('Failed to add new fields:'));
         if (isKintoneApiError(error)) {
@@ -141,185 +174,363 @@ export const applyCommand = async (options: ApplyOptions) => {
             console.error(chalk.red(`  ${field}:`), fieldError);
           }
         }
-        const errorMessage = error instanceof Error ? error.message : String(error);
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
         console.error(chalk.red('Full error:'), errorMessage);
         process.exit(1);
       }
     }
-    
+
     // Process existing fields for updates
+    const subtableChildAdds: Record<
+      string,
+      Record<string, AnyFieldProperties>
+    > = {};
     for (const [fieldCode, fieldConfig] of existingFieldsToUpdate) {
       const currentField = currentForm.properties[fieldCode];
       if (!currentField) continue; // Type guard - should not happen as we already checked
       const config = fieldConfig;
 
       // Skip system fields that cannot be updated
-      if (NON_UPDATABLE_FIELD_TYPES.includes(currentField.type as NonUpdatableFieldType)) {
+      if (
+        NON_UPDATABLE_FIELD_TYPES.includes(
+          currentField.type as NonUpdatableFieldType
+        )
+      ) {
         console.log(chalk.gray(`  ${fieldCode}: System field, skipping...`));
         continue;
       }
 
       // Check for changes
       const updates: FieldUpdatePayload = {
-        type: currentField.type as FieldType,  // type is required
-        code: fieldCode                         // code is required
+        // NOTE: kintone APIの仕様上、更新時も type/code の指定が必要です
+        type: currentField.type as FieldType,
+        code: fieldCode,
       };
       let hasChanges = false;
-      
 
       // Check label
-      if ('label' in config && config.label && currentField.label !== config.label) {
+      if (
+        'label' in config &&
+        config.label &&
+        currentField.label !== config.label
+      ) {
         updates.label = config.label;
         hasChanges = true;
-        console.log(chalk.gray(`  ${fieldCode}: label "${currentField.label}" → "${config.label}"`));
+        console.log(
+          chalk.gray(
+            `  ${fieldCode}: label "${currentField.label}" → "${config.label}"`
+          )
+        );
       }
 
       // Check noLabel
-      if ('noLabel' in config && config.noLabel !== undefined && 'noLabel' in currentField && currentField.noLabel !== config.noLabel) {
+      if (
+        'noLabel' in config &&
+        config.noLabel !== undefined &&
+        'noLabel' in currentField &&
+        currentField.noLabel !== config.noLabel
+      ) {
         updates.noLabel = config.noLabel;
         hasChanges = true;
-        console.log(chalk.gray(`  ${fieldCode}: noLabel ${currentField.noLabel} → ${config.noLabel}`));
+        console.log(
+          chalk.gray(
+            `  ${fieldCode}: noLabel ${currentField.noLabel} → ${config.noLabel}`
+          )
+        );
       }
 
       // Check required (for fields that support it)
-      if ('required' in config && config.required !== undefined && 'required' in currentField && currentField.required !== config.required) {
+      if (
+        'required' in config &&
+        config.required !== undefined &&
+        'required' in currentField &&
+        currentField.required !== config.required
+      ) {
         updates.required = config.required;
         hasChanges = true;
-        console.log(chalk.gray(`  ${fieldCode}: required ${currentField.required} → ${config.required}`));
+        console.log(
+          chalk.gray(
+            `  ${fieldCode}: required ${currentField.required} → ${config.required}`
+          )
+        );
       }
 
       // Check defaultValue (for fields that support it)
-      if ('defaultValue' in config && config.defaultValue !== undefined && 'defaultValue' in currentField && JSON.stringify(currentField.defaultValue) !== JSON.stringify(config.defaultValue)) {
+      if (
+        'defaultValue' in config &&
+        config.defaultValue !== undefined &&
+        'defaultValue' in currentField &&
+        JSON.stringify(currentField.defaultValue) !==
+          JSON.stringify(config.defaultValue)
+      ) {
         updates.defaultValue = config.defaultValue;
         hasChanges = true;
         console.log(chalk.gray(`  ${fieldCode}: defaultValue changed`));
       }
 
       // For SINGLE_LINE_TEXT fields
-      if (config.type === 'SINGLE_LINE_TEXT' && currentField.type === 'SINGLE_LINE_TEXT') {
-        if ('minLength' in config && 'minLength' in currentField && currentField.minLength !== config.minLength) {
+      if (
+        config.type === 'SINGLE_LINE_TEXT' &&
+        currentField.type === 'SINGLE_LINE_TEXT'
+      ) {
+        if (
+          'minLength' in config &&
+          'minLength' in currentField &&
+          currentField.minLength !== config.minLength
+        ) {
           updates.minLength = config.minLength;
           hasChanges = true;
-          console.log(chalk.gray(`  ${fieldCode}: minLength "${currentField.minLength}" → "${config.minLength}"`));
+          console.log(
+            chalk.gray(
+              `  ${fieldCode}: minLength "${currentField.minLength}" → "${config.minLength}"`
+            )
+          );
         }
-        if ('maxLength' in config && 'maxLength' in currentField && currentField.maxLength !== config.maxLength) {
+        if (
+          'maxLength' in config &&
+          'maxLength' in currentField &&
+          currentField.maxLength !== config.maxLength
+        ) {
           updates.maxLength = config.maxLength;
           hasChanges = true;
-          console.log(chalk.gray(`  ${fieldCode}: maxLength "${currentField.maxLength}" → "${config.maxLength}"`));
+          console.log(
+            chalk.gray(
+              `  ${fieldCode}: maxLength "${currentField.maxLength}" → "${config.maxLength}"`
+            )
+          );
         }
-        if ('unique' in config && config.unique !== undefined && 'unique' in currentField && currentField.unique !== config.unique) {
+        if (
+          'unique' in config &&
+          config.unique !== undefined &&
+          'unique' in currentField &&
+          currentField.unique !== config.unique
+        ) {
           updates.unique = config.unique;
           hasChanges = true;
-          console.log(chalk.gray(`  ${fieldCode}: unique ${currentField.unique} → ${config.unique}`));
+          console.log(
+            chalk.gray(
+              `  ${fieldCode}: unique ${currentField.unique} → ${config.unique}`
+            )
+          );
         }
       }
 
       // For NUMBER fields
       if (config.type === 'NUMBER' && currentField.type === 'NUMBER') {
-        if ('minValue' in config && 'minValue' in currentField && currentField.minValue !== config.minValue) {
+        if (
+          'minValue' in config &&
+          'minValue' in currentField &&
+          currentField.minValue !== config.minValue
+        ) {
           updates.minValue = config.minValue;
           hasChanges = true;
-          console.log(chalk.gray(`  ${fieldCode}: minValue "${currentField.minValue}" → "${config.minValue}"`));
+          console.log(
+            chalk.gray(
+              `  ${fieldCode}: minValue "${currentField.minValue}" → "${config.minValue}"`
+            )
+          );
         }
-        if ('maxValue' in config && 'maxValue' in currentField && currentField.maxValue !== config.maxValue) {
+        if (
+          'maxValue' in config &&
+          'maxValue' in currentField &&
+          currentField.maxValue !== config.maxValue
+        ) {
           updates.maxValue = config.maxValue;
           hasChanges = true;
-          console.log(chalk.gray(`  ${fieldCode}: maxValue "${currentField.maxValue}" → "${config.maxValue}"`));
+          console.log(
+            chalk.gray(
+              `  ${fieldCode}: maxValue "${currentField.maxValue}" → "${config.maxValue}"`
+            )
+          );
         }
-        if ('digit' in config && config.digit !== undefined && 'digit' in currentField && currentField.digit !== config.digit) {
+        if (
+          'digit' in config &&
+          config.digit !== undefined &&
+          'digit' in currentField &&
+          currentField.digit !== config.digit
+        ) {
           updates.digit = config.digit;
           hasChanges = true;
-          console.log(chalk.gray(`  ${fieldCode}: digit ${currentField.digit} → ${config.digit}`));
+          console.log(
+            chalk.gray(
+              `  ${fieldCode}: digit ${currentField.digit} → ${config.digit}`
+            )
+          );
         }
-        if ('displayScale' in config && 'displayScale' in currentField && currentField.displayScale !== config.displayScale) {
+        if (
+          'displayScale' in config &&
+          'displayScale' in currentField &&
+          currentField.displayScale !== config.displayScale
+        ) {
           updates.displayScale = config.displayScale;
           hasChanges = true;
-          console.log(chalk.gray(`  ${fieldCode}: displayScale "${currentField.displayScale}" → "${config.displayScale}"`));
+          console.log(
+            chalk.gray(
+              `  ${fieldCode}: displayScale "${currentField.displayScale}" → "${config.displayScale}"`
+            )
+          );
         }
-        if ('unit' in config && 'unit' in currentField && currentField.unit !== config.unit) {
+        if (
+          'unit' in config &&
+          'unit' in currentField &&
+          currentField.unit !== config.unit
+        ) {
           updates.unit = config.unit;
           hasChanges = true;
-          console.log(chalk.gray(`  ${fieldCode}: unit "${currentField.unit}" → "${config.unit}"`));
+          console.log(
+            chalk.gray(
+              `  ${fieldCode}: unit "${currentField.unit}" → "${config.unit}"`
+            )
+          );
         }
-        if ('unitPosition' in config && config.unitPosition !== undefined && 'unitPosition' in currentField && currentField.unitPosition !== config.unitPosition) {
+        if (
+          'unitPosition' in config &&
+          config.unitPosition !== undefined &&
+          'unitPosition' in currentField &&
+          currentField.unitPosition !== config.unitPosition
+        ) {
           updates.unitPosition = config.unitPosition;
           hasChanges = true;
-          console.log(chalk.gray(`  ${fieldCode}: unitPosition "${currentField.unitPosition}" → "${config.unitPosition}"`));
+          console.log(
+            chalk.gray(
+              `  ${fieldCode}: unitPosition "${currentField.unitPosition}" → "${config.unitPosition}"`
+            )
+          );
         }
-        if ('unique' in config && config.unique !== undefined && 'unique' in currentField && currentField.unique !== config.unique) {
+        if (
+          'unique' in config &&
+          config.unique !== undefined &&
+          'unique' in currentField &&
+          currentField.unique !== config.unique
+        ) {
           updates.unique = config.unique;
           hasChanges = true;
-          console.log(chalk.gray(`  ${fieldCode}: unique ${currentField.unique} → ${config.unique}`));
+          console.log(
+            chalk.gray(
+              `  ${fieldCode}: unique ${currentField.unique} → ${config.unique}`
+            )
+          );
         }
       }
 
       // For DATETIME fields
       if (config.type === 'DATETIME' && currentField.type === 'DATETIME') {
-        if ('defaultNowValue' in config && config.defaultNowValue !== undefined && 'defaultNowValue' in currentField && currentField.defaultNowValue !== config.defaultNowValue) {
+        if (
+          'defaultNowValue' in config &&
+          config.defaultNowValue !== undefined &&
+          'defaultNowValue' in currentField &&
+          currentField.defaultNowValue !== config.defaultNowValue
+        ) {
           updates.defaultNowValue = config.defaultNowValue;
           hasChanges = true;
-          console.log(chalk.gray(`  ${fieldCode}: defaultNowValue ${currentField.defaultNowValue} → ${config.defaultNowValue}`));
+          console.log(
+            chalk.gray(
+              `  ${fieldCode}: defaultNowValue ${currentField.defaultNowValue} → ${config.defaultNowValue}`
+            )
+          );
         }
-        if ('unique' in config && config.unique !== undefined && 'unique' in currentField && currentField.unique !== config.unique) {
+        if (
+          'unique' in config &&
+          config.unique !== undefined &&
+          'unique' in currentField &&
+          currentField.unique !== config.unique
+        ) {
           updates.unique = config.unique;
           hasChanges = true;
-          console.log(chalk.gray(`  ${fieldCode}: unique ${currentField.unique} → ${config.unique}`));
+          console.log(
+            chalk.gray(
+              `  ${fieldCode}: unique ${currentField.unique} → ${config.unique}`
+            )
+          );
         }
       }
 
       // For USER_SELECT fields
-      if (config.type === 'USER_SELECT' && currentField.type === 'USER_SELECT') {
-        if ('entities' in config && config.entities && 'entities' in currentField && JSON.stringify(currentField.entities) !== JSON.stringify(config.entities)) {
+      if (
+        config.type === 'USER_SELECT' &&
+        currentField.type === 'USER_SELECT'
+      ) {
+        if (
+          'entities' in config &&
+          config.entities &&
+          'entities' in currentField &&
+          JSON.stringify(currentField.entities) !==
+            JSON.stringify(config.entities)
+        ) {
           // Convert readonly array to mutable array
-          updates.entities = [...config.entities].map(e => ({ code: e.code, type: e.type }));
+          updates.entities = [...config.entities].map((e) => ({
+            code: e.code,
+            type: e.type,
+          }));
           hasChanges = true;
           console.log(chalk.gray(`  ${fieldCode}: entities changed`));
         }
       }
 
       // For RADIO_BUTTON fields
-      if (config.type === 'RADIO_BUTTON' && currentField.type === 'RADIO_BUTTON') {
-        if ('align' in config && config.align !== undefined && 'align' in currentField && currentField.align !== config.align) {
+      if (
+        config.type === 'RADIO_BUTTON' &&
+        currentField.type === 'RADIO_BUTTON'
+      ) {
+        if (
+          'align' in config &&
+          config.align !== undefined &&
+          'align' in currentField &&
+          currentField.align !== config.align
+        ) {
           updates.align = config.align;
           hasChanges = true;
-          console.log(chalk.gray(`  ${fieldCode}: align ${currentField.align} → ${config.align}`));
+          console.log(
+            chalk.gray(
+              `  ${fieldCode}: align ${currentField.align} → ${config.align}`
+            )
+          );
         }
-        
+
         // Check options - need to include all options as they are completely replaced
         if (config.options && 'options' in currentField) {
           const currentOptions = currentField.options || {};
           const configOptions = config.options;
-          
+
           let optionsChanged = false;
-          
+
           // Check if any option labels have changed
-          for (const [optionKey, optionValue] of Object.entries(configOptions)) {
+          for (const [optionKey, optionValue] of Object.entries(
+            configOptions
+          )) {
             const currentOption = currentOptions[optionKey];
             if (currentOption && currentOption.label !== optionValue.label) {
               optionsChanged = true;
-              console.log(chalk.gray(`  ${fieldCode}: option "${optionKey}" label changed`));
+              console.log(
+                chalk.gray(
+                  `  ${fieldCode}: option "${optionKey}" label changed`
+                )
+              );
             }
           }
-          
-          // If any options changed, we need to include ALL options in the update
+
+          // If any options changed, we need to include ALL options in the update.
+          // Note: This will overwrite all existing options with the ones from the config,
+          // so make sure your config includes all options you want to keep.
           if (optionsChanged) {
             updates.options = {};
-            
+
             // First, add all existing options (to preserve any that aren't being changed)
             for (const [key, value] of Object.entries(currentOptions)) {
               updates.options[key] = value;
             }
-            
+
             // Then override with config options (this updates the labels)
             for (const [key, value] of Object.entries(configOptions)) {
               if (updates.options[key]) {
                 updates.options[key] = {
                   ...updates.options[key],
-                  ...value
+                  ...value,
                 };
               }
             }
-            
+
             hasChanges = true;
           }
         }
@@ -328,105 +539,245 @@ export const applyCommand = async (options: ApplyOptions) => {
       // For SUBTABLE fields
       if (config.type === 'SUBTABLE' && currentField.type === 'SUBTABLE') {
         // Check subtable fields
-        if ('fields' in config && config.fields && 'fields' in currentField && currentField.fields) {
+        if (
+          'fields' in config &&
+          config.fields &&
+          'fields' in currentField &&
+          currentField.fields
+        ) {
           const currentSubfields = currentField.fields as Record<string, any>;
           const configSubfields = config.fields as Record<string, any>;
           const updatedSubfields: Record<string, any> = {};
           let subfieldsChanged = false;
 
           // Check each subfield for changes
-          for (const [subfieldCode, configSubfield] of Object.entries(configSubfields)) {
+          for (const [subfieldCode, configSubfield] of Object.entries(
+            configSubfields
+          )) {
             const currentSubfield = currentSubfields[subfieldCode];
-            
+
             if (!currentSubfield) {
-              console.log(chalk.yellow(`  ${fieldCode}.${subfieldCode}: New subfield detected (requires manual addition)`));
+              if (options.addSubtableChild) {
+                // Schedule addition of missing subtable child field
+                if (!subtableChildAdds[fieldCode])
+                  subtableChildAdds[fieldCode] = {};
+                subtableChildAdds[fieldCode][subfieldCode] =
+                  configSubfield as AnyFieldProperties;
+                console.log(
+                  chalk.yellow(
+                    `  ${fieldCode}.${subfieldCode}: New subfield detected → will be added`
+                  )
+                );
+              } else {
+                console.log(
+                  chalk.yellow(
+                    `  ${fieldCode}.${subfieldCode}: New subfield detected (requires manual addition)`
+                  )
+                );
+              }
               continue;
             }
 
             const subfieldUpdates: any = {
               type: currentSubfield.type,
-              code: subfieldCode
+              code: subfieldCode,
             };
             let subfieldHasChanges = false;
 
             // Check subfield properties
-            if ('label' in configSubfield && configSubfield.label && currentSubfield.label !== configSubfield.label) {
+            if (
+              'label' in configSubfield &&
+              configSubfield.label &&
+              currentSubfield.label !== configSubfield.label
+            ) {
               subfieldUpdates.label = configSubfield.label;
               subfieldHasChanges = true;
-              console.log(chalk.gray(`    ${fieldCode}.${subfieldCode}: label "${currentSubfield.label}" → "${configSubfield.label}"`));
+              console.log(
+                chalk.gray(
+                  `    ${fieldCode}.${subfieldCode}: label "${currentSubfield.label}" → "${configSubfield.label}"`
+                )
+              );
             }
 
-            if ('noLabel' in configSubfield && configSubfield.noLabel !== undefined && 'noLabel' in currentSubfield && currentSubfield.noLabel !== configSubfield.noLabel) {
+            if (
+              'noLabel' in configSubfield &&
+              configSubfield.noLabel !== undefined &&
+              'noLabel' in currentSubfield &&
+              currentSubfield.noLabel !== configSubfield.noLabel
+            ) {
               subfieldUpdates.noLabel = configSubfield.noLabel;
               subfieldHasChanges = true;
-              console.log(chalk.gray(`    ${fieldCode}.${subfieldCode}: noLabel ${currentSubfield.noLabel} → ${configSubfield.noLabel}`));
+              console.log(
+                chalk.gray(
+                  `    ${fieldCode}.${subfieldCode}: noLabel ${currentSubfield.noLabel} → ${configSubfield.noLabel}`
+                )
+              );
             }
 
-            if ('required' in configSubfield && configSubfield.required !== undefined && 'required' in currentSubfield && currentSubfield.required !== configSubfield.required) {
+            if (
+              'required' in configSubfield &&
+              configSubfield.required !== undefined &&
+              'required' in currentSubfield &&
+              currentSubfield.required !== configSubfield.required
+            ) {
               subfieldUpdates.required = configSubfield.required;
               subfieldHasChanges = true;
-              console.log(chalk.gray(`    ${fieldCode}.${subfieldCode}: required ${currentSubfield.required} → ${configSubfield.required}`));
+              console.log(
+                chalk.gray(
+                  `    ${fieldCode}.${subfieldCode}: required ${currentSubfield.required} → ${configSubfield.required}`
+                )
+              );
             }
 
-            if ('defaultValue' in configSubfield && configSubfield.defaultValue !== undefined && 'defaultValue' in currentSubfield && JSON.stringify(currentSubfield.defaultValue) !== JSON.stringify(configSubfield.defaultValue)) {
+            if (
+              'defaultValue' in configSubfield &&
+              configSubfield.defaultValue !== undefined &&
+              'defaultValue' in currentSubfield &&
+              JSON.stringify(currentSubfield.defaultValue) !==
+                JSON.stringify(configSubfield.defaultValue)
+            ) {
               subfieldUpdates.defaultValue = configSubfield.defaultValue;
               subfieldHasChanges = true;
-              console.log(chalk.gray(`    ${fieldCode}.${subfieldCode}: defaultValue changed`));
+              console.log(
+                chalk.gray(
+                  `    ${fieldCode}.${subfieldCode}: defaultValue changed`
+                )
+              );
             }
 
             // Handle specific field types within subtable
-            if (configSubfield.type === 'SINGLE_LINE_TEXT' && currentSubfield.type === 'SINGLE_LINE_TEXT') {
-              if ('minLength' in configSubfield && 'minLength' in currentSubfield && currentSubfield.minLength !== configSubfield.minLength) {
+            if (
+              configSubfield.type === 'SINGLE_LINE_TEXT' &&
+              currentSubfield.type === 'SINGLE_LINE_TEXT'
+            ) {
+              if (
+                'minLength' in configSubfield &&
+                'minLength' in currentSubfield &&
+                currentSubfield.minLength !== configSubfield.minLength
+              ) {
                 subfieldUpdates.minLength = configSubfield.minLength;
                 subfieldHasChanges = true;
-                console.log(chalk.gray(`    ${fieldCode}.${subfieldCode}: minLength "${currentSubfield.minLength}" → "${configSubfield.minLength}"`));
+                console.log(
+                  chalk.gray(
+                    `    ${fieldCode}.${subfieldCode}: minLength "${currentSubfield.minLength}" → "${configSubfield.minLength}"`
+                  )
+                );
               }
-              if ('maxLength' in configSubfield && 'maxLength' in currentSubfield && currentSubfield.maxLength !== configSubfield.maxLength) {
+              if (
+                'maxLength' in configSubfield &&
+                'maxLength' in currentSubfield &&
+                currentSubfield.maxLength !== configSubfield.maxLength
+              ) {
                 subfieldUpdates.maxLength = configSubfield.maxLength;
                 subfieldHasChanges = true;
-                console.log(chalk.gray(`    ${fieldCode}.${subfieldCode}: maxLength "${currentSubfield.maxLength}" → "${configSubfield.maxLength}"`));
+                console.log(
+                  chalk.gray(
+                    `    ${fieldCode}.${subfieldCode}: maxLength "${currentSubfield.maxLength}" → "${configSubfield.maxLength}"`
+                  )
+                );
               }
             }
 
-            if (configSubfield.type === 'RADIO_BUTTON' && currentSubfield.type === 'RADIO_BUTTON') {
-              if ('align' in configSubfield && configSubfield.align !== undefined && 'align' in currentSubfield && currentSubfield.align !== configSubfield.align) {
+            if (
+              configSubfield.type === 'RADIO_BUTTON' &&
+              currentSubfield.type === 'RADIO_BUTTON'
+            ) {
+              if (
+                'align' in configSubfield &&
+                configSubfield.align !== undefined &&
+                'align' in currentSubfield &&
+                currentSubfield.align !== configSubfield.align
+              ) {
                 subfieldUpdates.align = configSubfield.align;
                 subfieldHasChanges = true;
-                console.log(chalk.gray(`    ${fieldCode}.${subfieldCode}: align ${currentSubfield.align} → ${configSubfield.align}`));
+                console.log(
+                  chalk.gray(
+                    `    ${fieldCode}.${subfieldCode}: align ${currentSubfield.align} → ${configSubfield.align}`
+                  )
+                );
               }
 
               // Check radio button options in subfield
               if (configSubfield.options && 'options' in currentSubfield) {
                 const currentSubOptions = currentSubfield.options || {};
                 const configSubOptions = configSubfield.options;
-                
+
                 let subOptionsChanged = false;
-                
-                for (const [optionKey, optionValue] of Object.entries(configSubOptions)) {
+
+                for (const [optionKey, optionValue] of Object.entries(
+                  configSubOptions
+                )) {
                   const currentOption = currentSubOptions[optionKey];
-                  if (currentOption && optionValue && typeof optionValue === 'object' && 'label' in optionValue && currentOption.label !== optionValue.label) {
+                  if (
+                    currentOption &&
+                    optionValue &&
+                    typeof optionValue === 'object' &&
+                    'label' in optionValue &&
+                    currentOption.label !== optionValue.label
+                  ) {
                     subOptionsChanged = true;
-                    console.log(chalk.gray(`    ${fieldCode}.${subfieldCode}: option "${optionKey}" label changed`));
+                    console.log(
+                      chalk.gray(
+                        `    ${fieldCode}.${subfieldCode}: option "${optionKey}" label changed`
+                      )
+                    );
                   }
                 }
-                
+
                 if (subOptionsChanged) {
                   subfieldUpdates.options = {};
-                  
-                  for (const [key, value] of Object.entries(currentSubOptions)) {
+
+                  // First, add all existing options (to preserve any that aren't being changed)
+                  for (const [key, value] of Object.entries(
+                    currentSubOptions
+                  )) {
                     subfieldUpdates.options[key] = value;
                   }
-                  
+
+                  // Then override with config options (this updates the labels)
+                  // Note: This will overwrite all existing options with the ones from the config,
+                  // so make sure your config includes all options you want to keep.
                   for (const [key, value] of Object.entries(configSubOptions)) {
-                    if (subfieldUpdates.options[key] && typeof value === 'object') {
+                    if (
+                      subfieldUpdates.options[key] &&
+                      typeof value === 'object'
+                    ) {
                       subfieldUpdates.options[key] = {
                         ...subfieldUpdates.options[key],
-                        ...value
+                        ...value,
                       };
                     }
                   }
-                  
-                  subfieldHasChanges = true;
+
+                  if (subOptionsChanged) {
+                    subfieldUpdates.options = {};
+
+                    // First, add all existing options (to preserve any that aren't being changed)
+                    for (const [key, value] of Object.entries(
+                      currentSubOptions
+                    )) {
+                      subfieldUpdates.options[key] = value;
+                    }
+
+                    // Then override with config options (this updates the labels)
+                    // Note: This will overwrite all existing options with the ones from the config,
+                    // so make sure your config includes all options you want to keep.
+                    for (const [key, value] of Object.entries(
+                      configSubOptions
+                    )) {
+                      if (
+                        subfieldUpdates.options[key] &&
+                        typeof value === 'object'
+                      ) {
+                        subfieldUpdates.options[key] = {
+                          ...subfieldUpdates.options[key],
+                          ...value,
+                        };
+                      }
+                    }
+
+                    subfieldHasChanges = true;
+                  }
                 }
               }
             }
@@ -441,7 +792,9 @@ export const applyCommand = async (options: ApplyOptions) => {
           }
 
           // Include all current subfields that weren't in config to preserve them
-          for (const [subfieldCode, currentSubfield] of Object.entries(currentSubfields)) {
+          for (const [subfieldCode, currentSubfield] of Object.entries(
+            currentSubfields
+          )) {
             if (!(subfieldCode in configSubfields)) {
               updatedSubfields[subfieldCode] = currentSubfield;
             }
@@ -455,16 +808,51 @@ export const applyCommand = async (options: ApplyOptions) => {
       }
 
       if (hasChanges) {
-        // Do not include 'type' in updates
+        // Do not include 'type' in updates (type is inferred from the field structure)
         updatePayload.properties[fieldCode] = updates;
         changesCount++;
       }
     }
 
+    // Add missing subtable child fields if requested
+    if (options.addSubtableChild && Object.keys(subtableChildAdds).length > 0) {
+      console.log(chalk.blue(`\nAdding subtable child field(s)...`));
+      const subtableProps: Record<string, unknown> = {};
+      for (const [subtableCode, children] of Object.entries(
+        subtableChildAdds
+      )) {
+        subtableProps[subtableCode] = {
+          type: 'SUBTABLE',
+          code: subtableCode,
+          fields: children,
+        };
+      }
+      try {
+        await addFormFieldsLoose(client, {
+          app: appId,
+          properties: subtableProps,
+        });
+        console.log(
+          chalk.green(
+            `✓ Successfully added subtable child fields (${Object.values(subtableChildAdds).reduce((a, b) => a + Object.keys(b).length, 0)})`
+          )
+        );
+      } catch (error) {
+        console.error(chalk.red('Failed to add subtable child fields:'));
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
+        console.error(chalk.red('Full error:'), errorMessage);
+        process.exit(1);
+      }
+    }
+
     // Check if we need to deploy
-    const needsDeploy = Object.keys(newFields).length > 0 || changesCount > 0;
-    
-    if (changesCount === 0 && Object.keys(newFields).length === 0) {
+    const needsDeploy =
+      Object.keys(newFields).length > 0 ||
+      changesCount > 0 ||
+      (options.addSubtableChild && Object.keys(subtableChildAdds).length > 0);
+
+    if (!needsDeploy) {
       console.log(chalk.green('No changes detected. App is up to date!'));
       return;
     }
@@ -472,14 +860,16 @@ export const applyCommand = async (options: ApplyOptions) => {
     // Apply updates if any
     if (changesCount > 0) {
       console.log(chalk.blue(`\nApplying ${changesCount} field update(s)...`));
-      
+
       try {
         // updateFormFieldsはプロパティの部分的な更新を受け付ける（型穴はラッパーで集約）
         await updateFormFieldsPartial(client, updatePayload);
-        console.log(chalk.green(`✓ Successfully updated ${changesCount} field(s)`));
+        console.log(
+          chalk.green(`✓ Successfully updated ${changesCount} field(s)`)
+        );
       } catch (error) {
         console.error(chalk.red('Failed to update fields:'));
-        
+
         if (isKintoneApiError(error)) {
           console.error(chalk.red('Detailed errors:'));
           const errors = error.errors;
@@ -487,13 +877,14 @@ export const applyCommand = async (options: ApplyOptions) => {
             console.error(chalk.red(`  ${field}:`), fieldError);
           }
         }
-        
-        const errorMessage = error instanceof Error ? error.message : String(error);
+
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
         console.error(chalk.red('Full error:'), errorMessage);
         process.exit(1);
       }
     }
-    
+
     // Deploy the app if any changes were made
     if (needsDeploy) {
       console.log(chalk.blue('\nDeploying app...'));
@@ -502,12 +893,12 @@ export const applyCommand = async (options: ApplyOptions) => {
         console.log(chalk.green('✓ App deployed successfully!'));
       } catch (error) {
         console.error(chalk.red('Failed to deploy app:'));
-        const errorMessage = error instanceof Error ? error.message : String(error);
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
         console.error(chalk.red('Full error:'), errorMessage);
         process.exit(1);
       }
     }
-
   } catch (error) {
     console.error(chalk.red('Error during apply:'), error);
     process.exit(1);
