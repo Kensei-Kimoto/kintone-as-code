@@ -65,6 +65,22 @@ flowchart TD
 - 数値/日付/日時/時間: `between(min, max)`
 - 関数（未サポート名）: `customDateFunction(name, ...args)` / `customUserFunction(name, ...args)`
 
+### 型付き orderBy ヘルパ
+
+生成物のビルダーは、型付きの並び替えヘルパ `orderByField(field: FieldNames, dir?: 'asc' | 'desc')` を提供します。
+
+```ts
+import { QueryFields, createQuery } from '../apps/customer-app.query';
+
+const q = createQuery()
+  .where(QueryFields.売上高.greaterThan(1000000))
+  .orderByField('売上高', 'desc')
+  .limit(100)
+  .build();
+```
+
+注: 既存の `orderBy(field: string, dir?: 'asc' | 'desc')` も後方互換として引き続き利用できます。
+
 ## サブテーブル/関連レコードの扱い
 
 - `--include-subtable` を指定すると、サブテーブルの子フィールドを `createTableSubField('親.子')` で最小API（`in/not in` のみ）として公開します。

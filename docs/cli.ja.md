@@ -1,5 +1,17 @@
 # CLI ガイド
 
+## init
+
+```bash
+kintone-as-code init [options]
+
+オプション:
+  -f, --force        既存ファイルを上書き
+  --no-esm-rewrite   既存の package.json を ESM に書き換えない（CJS 互換導入向け）
+```
+
+注: 既定では `init` はプロジェクトを ESM 前提（`type: module`）に整えます。CJS 互換を維持したい場合は `--no-esm-rewrite` を指定してください。
+
 ## export
 
 ```bash
