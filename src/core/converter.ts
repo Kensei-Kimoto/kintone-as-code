@@ -72,8 +72,9 @@ export default defineAppSchema({
   fieldsConfig: appFieldsConfig
 });`;
       }
-    } catch {
+    } catch (fallbackError) {
       // フォールバックも失敗した場合は従来どおりエラー
+      console.error('Fallback schema generation also failed:', fallbackError);
     }
     if (hasErrorsProperty(error)) {
       console.error(

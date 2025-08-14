@@ -46,7 +46,7 @@ kintone-as-code init
 # 基本（デフォルトで query / record-schema も生成）
 kintone-as-code export --app-id 123 --name customer-app
 
-# 生成を抑止（後方互換の --with-* も可）
+# 生成を抑止
 kintone-as-code export --app-id 123 --name customer-app --no-query
 kintone-as-code export --app-id 123 --name customer-app --no-record-schema
 

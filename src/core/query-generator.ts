@@ -49,7 +49,6 @@ const UNSUPPORTED_FIELD_TYPES = new Set([
   'GROUP',
   'SPACER',
   'LABEL',
-  'REFERENCE_TABLE',
 ]);
 
 // フィールドタイプマッピング取得
