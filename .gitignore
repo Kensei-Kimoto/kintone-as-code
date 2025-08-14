@@ -70,3 +70,4 @@ test-v*/
 test-*/
 
 utils/app-ids.ts
+apps/

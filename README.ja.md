@@ -138,8 +138,7 @@ export default defineAppSchema({
 
 ### アプリIDの管理
 
-`utils/app-ids.ts` にアプリIDをまとめて管理します（`export const APP_IDS = { ... } as const;`）。
-環境変数方式も利用できますが、現在は `APP_IDS` に集約する運用を推奨します。
+`utils/app-ids.ts` にアプリIDをまとめて管理します（`export const APP_IDS = { ... } as const;`）。`export` 実行時に自動更新されます。
 
 ### 設定ファイル
 
