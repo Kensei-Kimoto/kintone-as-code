@@ -35,7 +35,7 @@ sequenceDiagram
 
 - 更新不可フィールド（システム項目）はスキップされます（実装参照: `commands/apply.ts`）
   - `RECORD_NUMBER`, `CREATOR`, `CREATED_TIME`, `MODIFIER`, `UPDATED_TIME`, `STATUS`, `STATUS_ASSIGNEE`, `CATEGORY`
-- サブテーブルの「子フィールド追加」は現状自動追加しません（検知するとログ警告のみ）。必要に応じてUIで追加→`export` で同期、または今後の対応をお待ちください。
+- サブテーブルの「子フィールド追加」はデフォルトでは自動追加しません（検知するとログ警告）。`--add-subtable-child` を付けると、検出した子フィールドを追加します（実験的）。
 
 ## Create
 

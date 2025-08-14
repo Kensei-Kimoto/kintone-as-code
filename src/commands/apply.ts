@@ -852,7 +852,7 @@ export const applyCommand = async (options: ApplyOptions) => {
       changesCount > 0 ||
       (options.addSubtableChild && Object.keys(subtableChildAdds).length > 0);
 
-    if (changesCount === 0 && Object.keys(newFields).length === 0) {
+    if (!needsDeploy) {
       console.log(chalk.green('No changes detected. App is up to date!'));
       return;
     }
