@@ -14,14 +14,21 @@ export const convertKintoneFieldsToSchema = (
     const parsed = Schema.decodeUnknownSync(FormFieldsSchema)(rawFields);
     // READMEスタイル: 個別フィールド定義 + appFieldsConfig（固定）
     const classicCode = generateFieldsConfigCode(parsed.properties as any);
+    // 安全な式生成（コードインジェクション回避）
+    const safeNameExpr = JSON.stringify(appName ?? 'Exported App');
+    const appIdExpr = appConstantName
+      ? /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(appConstantName)
+        ? `.${appConstantName}`
+        : `[${JSON.stringify(appConstantName)}]`
+      : `.MY_APP`;
     return `${classicCode}
 
 import { defineAppSchema } from 'kintone-as-code';
 import { APP_IDS } from '../utils/app-ids.js';
 
 export default defineAppSchema({
-  appId: APP_IDS.${appConstantName || 'MY_APP'},
-  name: '${appName || 'Exported App'}',
+  appId: APP_IDS${appIdExpr},
+  name: ${safeNameExpr},
   description: 'This schema was exported from kintone.',
   fieldsConfig: appFieldsConfig
 });`;
@@ -47,14 +54,20 @@ export default defineAppSchema({
           throw new Error('Schema validation failed during export.');
         }
         const classicCode = generateFieldsConfigCode(props);
+        const safeNameExpr = JSON.stringify(appName ?? 'Exported App');
+        const appIdExpr = appConstantName
+          ? /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(appConstantName)
+            ? `.${appConstantName}`
+            : `[${JSON.stringify(appConstantName)}]`
+          : `.MY_APP`;
         return `${classicCode}
 
 import { defineAppSchema } from 'kintone-as-code';
 import { APP_IDS } from '../utils/app-ids.js';
 
 export default defineAppSchema({
-  appId: APP_IDS.${appConstantName || 'MY_APP'},
-  name: '${appName || 'Exported App'}',
+  appId: APP_IDS${appIdExpr},
+  name: ${safeNameExpr},
   description: 'This schema was exported from kintone.',
   fieldsConfig: appFieldsConfig
 });`;

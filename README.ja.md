@@ -402,7 +402,7 @@ const records = await client.record.getRecords({
 
 - 文字列: `contains()/startsWith()/endsWith()`
 - 数値/日付/日時/時間: `between(min, max)`
-- 関数（未サポート名）: `customDateFunction(name, ...args)` / `customUserFunction(name, ...args)`
+- 関数（カスタム名）: `customDateFunction(name, ...args)` / `customUserFunction(name, ...args)`
 
 ### クエリビルダーの機能
 
@@ -447,7 +447,7 @@ const records = await client.record.getRecords({
 ## ベストプラクティス
 
 1. **バージョン管理**: アプリ設定の変更を追跡するため、スキーマファイルをコミット
-2. **環境変数**: 複数環境対応のため、アプリIDには環境変数を使用
+2. **APP_IDSの一元管理**: 複数環境対応のため、アプリIDは `utils/app-ids.ts` の `APP_IDS` で管理（export時に自動更新）
 3. **型安全性**: TypeScriptの型チェックを活用して設定エラーを早期発見
 4. **コードレビュー**: 開発プロセスの一環としてスキーマ変更をレビュー
 5. **レコードバリデーション**: カスタマイズコードで生成されたレコードスキーマを使用して型安全なデータ処理を実現
