@@ -60,7 +60,7 @@ kintone-as-code export --app-id 123 --name customer-app \
 
 - `apps/customer-app.schema.ts` - 完全に型付けされたフィールド定義
 - `apps/customer-app.record-schema.ts` - 静的な型安全レコードスキーマ（そのままコピペで利用可能）
-- `apps/customer-app.query.ts` - kintone API用の型安全なクエリビルダー（デフォルトで生成）
+- `apps/customer-app.query.ts` - kintone API用の型安全なクエリビルダー（デフォルトで生成。通常は `apps/*.query.ts` を .gitignore で除外）
   - `--include-related` 指定時は `REFERENCE_TABLE` の `displayFields` を `createTableSubField('親.子')` で最小API公開（`in/not in` のみ）
   - `--include-subtable` 指定時はサブテーブル子フィールドを同様に最小APIで公開
 
@@ -405,7 +405,7 @@ const records = await client.record.getRecords({
 - 数値/日付/日時/時間: `between(min, max)`
 - 関数（未サポート名）: `customDateFunction(name, ...args)` / `customUserFunction(name, ...args)`
 
-### クエリビルダーの機能
+#### クエリビルダーの機能
 
 - **型安全なフィールドアクセス**: すべてのフィールドがkintoneフィールドタイプに基づいて型付け
 - **フィールド固有の演算子**: 各フィールドタイプで有効な演算子のみ使用可能
@@ -415,12 +415,12 @@ const records = await client.record.getRecords({
 
 注: クエリビルダ機能は公開APIとしては提供していません。内部的にはFP APIに基づく設計であり、将来的に公開する場合もFP方針を前提とします。
 
-### 補足: raw() の非提供
+#### 補足: raw() の非提供
 
 生クエリを直接挿入する `raw()` は提供しません。代替として、
 `contains/startsWith/endsWith`、`between(min, max)`、`customDateFunction/customUserFunction` を利用してください。
 
-### フィールドタイプ別の例
+#### フィールドタイプ別の例
 
 ```typescript
 // 文字列フィールドは like/not like をサポート

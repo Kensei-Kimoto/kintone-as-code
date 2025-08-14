@@ -6,8 +6,9 @@ import {
   createCheckboxField,
   createDateField,
   createUserField,
-  toString,
+  toString as expressionToString,
 } from '../field.js';
+const toString = expressionToString;
 import { TODAY, FROM_TODAY, LOGINUSER, NOW } from '../functions.js';
 
 describe('StringField', () => {

@@ -28,30 +28,35 @@ type DateValue = string | DateFunction;
 type UserValue = string | UserFunction;
 
 // 値のフォーマット（関数対応）
-const formatFieldValue = (value: any): any => {
-  if (value && typeof value === 'object' && value._tag === 'function') {
-    return formatFunction(value);
+const formatFieldValue = (
+  value:
+    | string
+    | number
+    | boolean
+    | null
+    | undefined
+    | DateFunction
+    | UserFunction
+): string | number | boolean | null | undefined => {
+  if (value && typeof value === 'object' && (value as { _tag?: string })._tag === 'function') {
+    return formatFunction(value as DateFunction | UserFunction);
   }
-  return value;
+  return value as string | number | boolean | null | undefined;
 };
 
-// 汎用の等価系（不変オブジェクトにメソッドを実装）
-const baseOps = <T>(code: string) => ({
+// 汎用: 等価系のみ（in/not in は各フィールドで型制約付きに提供）
+const baseOps = <T extends string | number | boolean | null | undefined | DateFunction | UserFunction>(
+  code: string
+) => ({
   equals(value: T): Expression {
     return condition(code, '=', formatFieldValue(value));
   },
   notEquals(value: T): Expression {
     return condition(code, '!=', formatFieldValue(value));
   },
-  in(values: T[]): Expression {
-    return condition(code, 'in', values.map(formatFieldValue));
-  },
-  notIn(values: T[]): Expression {
-    return condition(code, 'not in', values.map(formatFieldValue));
-  },
 });
 
-// 文字列フィールド（like/not like を追加）
+// 文字列フィールド（like/not like + in/not in）
 export const createStringField = (code: string) => {
   return Object.freeze({
     ...baseOps<string>(code),
@@ -70,10 +75,16 @@ export const createStringField = (code: string) => {
     endsWith(suffix: string): Expression {
       return condition(code, 'like', `*${suffix}`);
     },
+    in(values: readonly string[]): Expression {
+      return condition(code, 'in', values as readonly (string | number)[]);
+    },
+    notIn(values: readonly string[]): Expression {
+      return condition(code, 'not in', values as readonly (string | number)[]);
+    },
   });
 };
 
-// 数値フィールド（比較演算子）
+// 数値フィールド（比較演算子 + in/not in）
 export const createNumberField = (code: string) => {
   return Object.freeze({
     ...baseOps<number>(code),
@@ -95,6 +106,12 @@ export const createNumberField = (code: string) => {
         condition(code, '<=', maxInclusive)
       );
     },
+    in(values: readonly number[]): Expression {
+      return condition(code, 'in', values as readonly (string | number)[]);
+    },
+    notIn(values: readonly number[]): Expression {
+      return condition(code, 'not in', values as readonly (string | number)[]);
+    },
   });
 };
 
@@ -105,11 +122,11 @@ export const createDropdownField = <T extends readonly string[]>(
 ) => {
   const obj = {
     options,
-    in(values: T[number][]): Expression {
-      return condition(code, 'in', values);
+    in(values: readonly T[number][]): Expression {
+      return condition(code, 'in', values as readonly (string | number)[]);
     },
-    notIn(values: T[number][]): Expression {
-      return condition(code, 'not in', values);
+    notIn(values: readonly T[number][]): Expression {
+      return condition(code, 'not in', values as readonly (string | number)[]);
     },
   } as const;
   return Object.freeze(obj);
@@ -122,17 +139,17 @@ export const createCheckboxField = <T extends readonly string[]>(
 ) => {
   const obj = {
     options,
-    in(values: T[number][]): Expression {
-      return condition(code, 'in', values);
+    in(values: readonly T[number][]): Expression {
+      return condition(code, 'in', values as readonly (string | number)[]);
     },
-    notIn(values: T[number][]): Expression {
-      return condition(code, 'not in', values);
+    notIn(values: readonly T[number][]): Expression {
+      return condition(code, 'not in', values as readonly (string | number)[]);
     },
   } as const;
   return Object.freeze(obj);
 };
 
-// 日付フィールド（比較演算子、関数フォーマット対応）
+// 日付フィールド（比較演算子、関数フォーマット対応 + in/not in）
 export const createDateField = (code: string) => {
   return Object.freeze({
     ...baseOps<DateValue>(code),
@@ -153,6 +170,14 @@ export const createDateField = (code: string) => {
         condition(code, '>=', formatFieldValue(minInclusive)),
         condition(code, '<=', formatFieldValue(maxInclusive))
       );
+    },
+    in(values: readonly DateValue[]): Expression {
+      const formatted = values.map((v) => formatFieldValue(v) as string);
+      return condition(code, 'in', formatted as readonly (string | number)[]);
+    },
+    notIn(values: readonly DateValue[]): Expression {
+      const formatted = values.map((v) => formatFieldValue(v) as string);
+      return condition(code, 'not in', formatted as readonly (string | number)[]);
     },
   });
 };
@@ -178,6 +203,14 @@ export const createDateTimeField = (code: string) => {
         condition(code, '>=', formatFieldValue(minInclusive)),
         condition(code, '<=', formatFieldValue(maxInclusive))
       );
+    },
+    in(values: readonly DateValue[]): Expression {
+      const formatted = values.map((v) => formatFieldValue(v) as string);
+      return condition(code, 'in', formatted as readonly (string | number)[]);
+    },
+    notIn(values: readonly DateValue[]): Expression {
+      const formatted = values.map((v) => formatFieldValue(v) as string);
+      return condition(code, 'not in', formatted as readonly (string | number)[]);
     },
   });
 };
@@ -207,13 +240,37 @@ export const createTimeField = (code: string) => {
   });
 };
 
-// ユーザー/組織/グループ（等価系のみ）
+// ユーザー/組織/グループ（等価系 + in/not in）
 export const createUserField = (code: string) =>
-  Object.freeze(baseOps<UserValue>(code));
+  Object.freeze({
+    ...baseOps<UserValue>(code),
+    in(values: readonly string[]): Expression {
+      return condition(code, 'in', values as readonly (string | number)[]);
+    },
+    notIn(values: readonly string[]): Expression {
+      return condition(code, 'not in', values as readonly (string | number)[]);
+    },
+  });
 export const createOrgField = (code: string) =>
-  Object.freeze(baseOps<string>(code));
+  Object.freeze({
+    ...baseOps<string>(code),
+    in(values: readonly string[]): Expression {
+      return condition(code, 'in', values as readonly (string | number)[]);
+    },
+    notIn(values: readonly string[]): Expression {
+      return condition(code, 'not in', values as readonly (string | number)[]);
+    },
+  });
 export const createGroupField = (code: string) =>
-  Object.freeze(baseOps<string>(code));
+  Object.freeze({
+    ...baseOps<string>(code),
+    in(values: readonly string[]): Expression {
+      return condition(code, 'in', values as readonly (string | number)[]);
+    },
+    notIn(values: readonly string[]): Expression {
+      return condition(code, 'not in', values as readonly (string | number)[]);
+    },
+  });
 
 // ラジオボタン（equals/in/not in を提供）
 export const createRadioButtonField = <T extends readonly string[]>(
@@ -228,11 +285,11 @@ export const createRadioButtonField = <T extends readonly string[]>(
     notEquals(value: T[number]): Expression {
       return condition(code, '!=', value);
     },
-    in(values: T[number][]): Expression {
-      return condition(code, 'in', values);
+    in(values: readonly T[number][]): Expression {
+      return condition(code, 'in', values as readonly (string | number)[]);
     },
-    notIn(values: T[number][]): Expression {
-      return condition(code, 'not in', values);
+    notIn(values: readonly T[number][]): Expression {
+      return condition(code, 'not in', values as readonly (string | number)[]);
     },
   } as const;
   return Object.freeze(obj);

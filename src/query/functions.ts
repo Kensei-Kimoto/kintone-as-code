@@ -104,10 +104,17 @@ export const customUserFunction = (
 
 // 関数を文字列に変換
 export const formatFunction = (func: KintoneFunction): string => {
+  const escapeString = (s: string): string => s.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+  const formatArg = (arg: unknown): string => {
+    if (typeof arg === 'string') return `"${escapeString(arg)}"`;
+    if (typeof arg === 'number' || typeof arg === 'boolean') return String(arg);
+    if (arg && typeof arg === 'object' && (arg as { _tag?: string })._tag === 'function') {
+      return formatFunction(arg as KintoneFunction);
+    }
+    return String(arg);
+  };
   if (func.args && func.args.length > 0) {
-    const formattedArgs = func.args.map((arg) =>
-      typeof arg === 'string' ? `"${arg}"` : String(arg)
-    );
+    const formattedArgs = func.args.map((arg) => formatArg(arg));
     return `${func.name}(${formattedArgs.join(', ')})`;
   }
   return `${func.name}()`;

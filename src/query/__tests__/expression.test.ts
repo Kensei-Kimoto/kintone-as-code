@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { condition, toString, and, or, not } from '../expression.js';
+import { condition, toString as expressionToString, and, or, not } from '../expression.js';
+const toString = expressionToString;
 
 describe('Condition', () => {
   describe('基本的な等価条件', () => {

@@ -56,7 +56,7 @@ export const condition = (
 
 // 文字列のエスケープ処理
 const escapeString = (str: string): string => {
-  return str.replace(/"/g, '\\"');
+  return str.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
 };
 
 // 値のフォーマット（より堅牢な実装）
@@ -177,11 +177,8 @@ export const toString = (
       const inner = toString(expr.expression, 'not');
       return `not (${inner})`;
     }
-
-    default:
-      // 型の網羅性チェック
-      const _exhaustive: never = expr;
-      void _exhaustive;
-      throw new Error(`Unknown expression type`);
   }
+  // 型の網羅性チェック（デフォルト分岐の代わりに配置）
+  const _exhaustive: never = expr;
+  return _exhaustive;
 };
