@@ -14,7 +14,7 @@ const { 会社名, ステータス } = QueryFields;
 
 const q = createQuery()
   .where(and(会社名.contains('サイボウズ'), ステータス.in(['商談中'])))
-  .orderBy('会社名', 'asc')
+  .orderByField('会社名', 'asc')
   .limit(100)
   .build();
 ```
