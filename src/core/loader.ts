@@ -22,7 +22,8 @@ export async function loadSchema(schemaPath: string): Promise<AppSchema> {
     if (ext === '.js' || ext === '.mjs') {
       const fileUrl = pathToFileURL(abs).href;
       const module = await import(fileUrl);
-      if (!('default' in module)) throw new Error('Schema file must export default');
+      if (!('default' in module))
+        throw new Error('Schema file must export default');
       return module.default as AppSchema;
     }
 
@@ -32,7 +33,8 @@ export async function loadSchema(schemaPath: string): Promise<AppSchema> {
       if (await fileExists(jsCandidate)) {
         const fileUrl = pathToFileURL(jsCandidate).href;
         const module = await import(fileUrl);
-        if (!('default' in module)) throw new Error('Schema file must export default');
+        if (!('default' in module))
+          throw new Error('Schema file must export default');
         return module.default as AppSchema;
       }
 
@@ -42,13 +44,13 @@ export async function loadSchema(schemaPath: string): Promise<AppSchema> {
       const shimPath = path.join(tempDir, 'kac-shim.mjs');
       await fs.writeFile(
         shimPath,
-                  [
-            'export const defineAppSchema = (schema) => schema;\n',
-            'export const getAppId = (name) => {',
-            '  const v = process.env[name];',
-            '  return v == null || v === "" ? "0" : String(v);',
-            '};\n',
-          ].join('')
+        [
+          'export const defineAppSchema = (schema) => schema;\n',
+          'export const getAppId = (name) => {',
+          '  const v = process.env[name];',
+          '  return v == null || v === "" ? "0" : String(v);',
+          '};\n',
+        ].join('')
       );
 
       const esb = await import('esbuild');
@@ -56,26 +58,42 @@ export async function loadSchema(schemaPath: string): Promise<AppSchema> {
       const aliasPlugin = {
         name: 'alias-kintone-as-code',
         setup(build: any) {
-          build.onResolve({ filter: /^kintone-as-code$/ }, () => ({ path: shimPath }));
+          build.onResolve({ filter: /^kintone-as-code$/ }, () => ({
+            path: shimPath,
+          }));
         },
       } as const;
-      await esb.build({
-        entryPoints: [abs],
-        outfile: outFile,
-        platform: 'node',
-        format: 'esm',
-        target: 'es2022',
-        bundle: true,
-        absWorkingDir: path.dirname(abs),
-        sourcemap: false,
-        logLevel: 'silent',
-        plugins: [aliasPlugin],
-      });
+      try {
+        await esb.build({
+          entryPoints: [abs],
+          outfile: outFile,
+          platform: 'node',
+          format: 'esm',
+          target: 'es2022',
+          bundle: true,
+          absWorkingDir: path.dirname(abs),
+          sourcemap: false,
+          logLevel: 'silent',
+          plugins: [aliasPlugin],
+        });
 
-      const fileUrl = pathToFileURL(outFile).href;
-      const module = await import(fileUrl);
-      if (!('default' in module)) throw new Error('Schema file must export default');
-      return module.default as AppSchema;
+        const fileUrl = pathToFileURL(outFile).href;
+        const module = await import(fileUrl);
+        if (!('default' in module))
+          throw new Error('Schema file must export default');
+        return module.default as AppSchema;
+      } finally {
+        // Best-effort cleanup
+        try {
+          await fs.rm(outFile, { force: true });
+        } catch {}
+        try {
+          await fs.rm(shimPath, { force: true });
+        } catch {}
+        try {
+          await fs.rmdir(tempDir, { recursive: true });
+        } catch {}
+      }
     }
 
     throw new Error(`Unsupported schema file extension: ${ext}`);

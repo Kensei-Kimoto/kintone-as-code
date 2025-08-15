@@ -81,6 +81,15 @@ ${after}`;
 // Export command main function - handles schema export from kintone apps
 export const exportCommand = async (options: ExportOptions) => {
   try {
+    // Validate name (sanitize)
+    const name = options.name.trim();
+    const NAME_RE = /^[A-Za-z0-9_-]+$/;
+    if (!NAME_RE.test(name)) {
+      throw new Error(
+        `Invalid name: ${options.name}. Allowed characters are A-Z, a-z, 0-9, '_' and '-'.`
+      );
+    }
+
     const config = await loadConfig();
     const envName = options.env || config.default;
     const envConfig = config.environments[envName];
@@ -94,18 +103,29 @@ export const exportCommand = async (options: ExportOptions) => {
     const formFields = await client.app.getFormFields({ app: options.appId });
 
     // Update app-ids.ts
-    const appConstantName = await updateAppIds(options.name, options.appId);
+    const appConstantName = await updateAppIds(name, options.appId);
 
     const schemaContent = convertKintoneFieldsToSchema(
       formFields,
       appConstantName,
-      options.name
+      name
     );
 
-    const outputDir = options.output || 'apps';
-    await fs.mkdir(outputDir, { recursive: true });
+    // Validate and resolve output directory within project root
+    const cwd = process.cwd();
+    const rawOutputDir = options.output || 'apps';
+    const resolvedOutputDir = path.resolve(cwd, rawOutputDir);
+    if (
+      resolvedOutputDir !== cwd &&
+      !resolvedOutputDir.startsWith(cwd + path.sep)
+    ) {
+      throw new Error(
+        `Invalid output directory: ${rawOutputDir}. Must be within project root.`
+      );
+    }
+    await fs.mkdir(resolvedOutputDir, { recursive: true });
 
-    const outputPath = path.join(outputDir, `${options.name}.schema.ts`);
+    const outputPath = path.join(resolvedOutputDir, `${name}.schema.ts`);
     await fs.writeFile(outputPath, schemaContent);
 
     console.log(`Successfully exported schema to ${outputPath}`);
@@ -114,12 +134,12 @@ export const exportCommand = async (options: ExportOptions) => {
     if (options.withRecordSchema !== false) {
       // Prefer static record schema generation using the properties from parsed form
       const recordSchemaContent = generateStaticRecordSchemaCode(
-        options.name,
+        name,
         formFields.properties as any
       );
       const recordSchemaPath = path.join(
-        outputDir,
-        `${options.name}.record-schema.ts`
+        resolvedOutputDir,
+        `${name}.record-schema.ts`
       );
       await fs.writeFile(recordSchemaPath, recordSchemaContent);
       console.log(`Successfully exported record schema to ${recordSchemaPath}`);
@@ -127,11 +147,11 @@ export const exportCommand = async (options: ExportOptions) => {
 
     // Generate query builder if requested
     if (options.withQuery) {
-      const queryContent = generateQueryBuilder(formFields, options.name, {
+      const queryContent = generateQueryBuilder(formFields, name, {
         includeSubtable: options.includeSubtable,
         includeRelated: options.includeRelated,
       });
-      const queryPath = path.join(outputDir, `${options.name}.query.ts`);
+      const queryPath = path.join(resolvedOutputDir, `${name}.query.ts`);
       await fs.writeFile(queryPath, queryContent, 'utf-8');
       console.log(`Successfully exported query builder to ${queryPath}`);
     }
@@ -141,5 +161,6 @@ export const exportCommand = async (options: ExportOptions) => {
     console.error(
       `Error during export: ${error instanceof Error ? error.message : String(error)}`
     );
+    process.exit(1);
   }
 };

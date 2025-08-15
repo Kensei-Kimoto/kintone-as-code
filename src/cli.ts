@@ -124,7 +124,7 @@ yargs(hideBin(process.argv))
           'Include subtable child fields (only supports in/not in operators) (default: false)',
       },
     },
-    (argv: any) => {
+    async (argv: any) => {
       const a = argv as ExportArgs;
       // Normalize negation-friendly aliases first
       const normalizedWithRecordSchema =
@@ -135,7 +135,7 @@ yargs(hideBin(process.argv))
         (a as any)['query'] !== undefined
           ? (a as any)['query']
           : a['with-query'];
-      exportCommand({
+      await exportCommand({
         appId: a['app-id'],
         name: a.name,
         env: a.env,
@@ -173,7 +173,7 @@ yargs(hideBin(process.argv))
           'Experimental: add missing subtable child fields automatically',
       },
     },
-    (argv: any) => {
+    async (argv: any) => {
       const a = argv as ApplyArgs;
       const options: any = {
         schema: a.schema,
@@ -185,7 +185,7 @@ yargs(hideBin(process.argv))
       if (a['app-id']) {
         options.appId = a['app-id'];
       }
-      applyCommand(options);
+      await applyCommand(options);
     }
   )
   .command(
@@ -214,9 +214,9 @@ yargs(hideBin(process.argv))
         description: 'Thread ID in the space',
       },
     },
-    (argv: any) => {
+    async (argv: any) => {
       const a = argv as CreateArgs;
-      createCommand({
+      await createCommand({
         schema: a.schema,
         name: a.name,
         env: a.env,
