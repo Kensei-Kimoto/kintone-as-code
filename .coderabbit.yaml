@@ -29,14 +29,16 @@ reviews:
   labeling_instructions:
     - label: ''
       instructions: ''
+  # 注意: path_filters は「含める（allow-list）」です。ここに書いたものだけがレビュー対象になります。
+  # レビューしたいパスを明示します。
   path_filters:
-    # 生成物/ビルド成果物はレビュー対象外
-    - 'dist/**'
-    - 'coverage/**'
-    - 'node_modules/**'
-    - 'apps/**/*.schema.ts'
-    - 'apps/**/*.record-schema.ts'
-    - 'apps/**/*.query.ts'
+    - 'src/**'
+    - 'docs/**'
+    - 'README*.md'
+    - '.coderabbit.yaml'
+    - 'package.json'
+    - 'tsconfig.json'
+    - 'vitest.config.ts'
   path_instructions:
     - path: 'src/**'
       instructions: 'TypeScriptの型安全性、Effect/FPスタイル、エラーハンドリング（終了コード統一/非同期のawait化）、セキュリティ（パスサニタイズ/ディレクトリトラバーサル防止）を重点的にレビューしてください。'
