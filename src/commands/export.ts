@@ -75,7 +75,7 @@ ${after}`;
     }
   }
 
-  await fs.writeFile(appIdsPath, content);
+  await fs.writeFile(appIdsPath, content, 'utf-8');
   return constantName;
 };
 
@@ -133,7 +133,7 @@ export const exportCommand = async (options: ExportOptions) => {
     await fs.mkdir(resolvedOutputDir, { recursive: true });
 
     const outputPath = path.join(resolvedOutputDir, `${name}.schema.ts`);
-    await fs.writeFile(outputPath, schemaContent);
+    await fs.writeFile(outputPath, schemaContent, 'utf-8');
 
     console.log(`Successfully exported schema to ${outputPath}`);
 
@@ -148,7 +148,7 @@ export const exportCommand = async (options: ExportOptions) => {
         resolvedOutputDir,
         `${name}.record-schema.ts`
       );
-      await fs.writeFile(recordSchemaPath, recordSchemaContent);
+      await fs.writeFile(recordSchemaPath, recordSchemaContent, 'utf-8');
       console.log(`Successfully exported record schema to ${recordSchemaPath}`);
     }
 
