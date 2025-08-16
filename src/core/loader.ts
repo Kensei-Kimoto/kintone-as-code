@@ -91,13 +91,15 @@ export async function loadSchema(schemaPath: string): Promise<AppSchema> {
           await fs.rm(shimPath, { force: true });
         } catch {}
         try {
-          await fs.rmdir(tempDir, { recursive: true });
+          await fs.rm(tempDir, { recursive: true, force: true });
         } catch {}
       }
     }
 
     throw new Error(`Unsupported schema file extension: ${ext}`);
   } catch (error) {
-    throw new Error(`Failed to load schema from ${schemaPath}`, { cause: error as Error });
+    throw new Error(`Failed to load schema from ${schemaPath}`, {
+      cause: error as Error,
+    });
   }
 }
