@@ -8,12 +8,120 @@ import { loadConfig } from '../../core/config.js';
 vi.mock('@kintone/rest-api-client');
 vi.mock('fs/promises');
 vi.mock('../../core/config.js');
+
+// process.exit をモック
+const mockExit = vi.spyOn(process, 'exit').mockImplementation(() => {
+  throw new Error('process.exit called');
+});
 vi.mock('../../core/converter.js', () => ({
   convertKintoneFieldsToSchema: vi.fn().mockReturnValue('// Schema content'),
   generateStaticRecordSchemaCode: vi
     .fn()
     .mockReturnValue('// Record schema content'),
 }));
+
+describe('export command appId validation', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('should throw error for invalid appId (NaN)', async () => {
+    // RED: This test should fail initially because appId validation is not implemented
+    await expect(
+      exportCommand({
+        appId: 'invalid-app-id',
+        name: 'test-app',
+        includeRelated: false,
+        includeSubtable: false,
+      })
+    ).rejects.toThrow('process.exit called');
+    
+    // Verify that process.exit was called due to validation error
+    expect(mockExit).toHaveBeenCalledWith(1);
+  });
+
+  it('should throw error for empty appId', async () => {
+    mockExit.mockClear();
+    await expect(
+      exportCommand({
+        appId: '',
+        name: 'test-app',
+        includeRelated: false,
+        includeSubtable: false,
+      })
+    ).rejects.toThrow('process.exit called');
+    
+    expect(mockExit).toHaveBeenCalledWith(1);
+  });
+
+  it('should throw error for appId with mixed characters (123abc)', async () => {
+    mockExit.mockClear();
+    await expect(
+      exportCommand({
+        appId: '123abc',
+        name: 'test-app',
+        includeRelated: false,
+        includeSubtable: false,
+      })
+    ).rejects.toThrow('process.exit called');
+    
+    expect(mockExit).toHaveBeenCalledWith(1);
+  });
+
+  it('should throw error for appId starting with letters (abc123)', async () => {
+    mockExit.mockClear();
+    await expect(
+      exportCommand({
+        appId: 'abc123',
+        name: 'test-app',
+        includeRelated: false,
+        includeSubtable: false,
+      })
+    ).rejects.toThrow('process.exit called');
+    
+    expect(mockExit).toHaveBeenCalledWith(1);
+  });
+
+  it('should accept valid numeric appId', async () => {
+    mockExit.mockClear();
+    const mockClient = {
+      app: { getFormFields: vi.fn().mockResolvedValue({ properties: {} }) },
+    };
+    
+    vi.mocked(KintoneRestAPIClient).mockReturnValue(mockClient as any);
+    vi.mocked(loadConfig).mockResolvedValue({
+      default: 'test',
+      environments: {
+        test: {
+          auth: {
+            baseUrl: 'https://test.cybozu.com',
+            username: 'test',
+            password: 'test',
+          },
+        },
+      },
+    });
+    vi.mocked(fs.mkdir).mockResolvedValue(undefined);
+    vi.mocked(fs.readFile).mockRejectedValue(new Error('File not found'));
+    vi.mocked(fs.writeFile).mockResolvedValue(undefined);
+    vi.mocked(fs.realpath).mockResolvedValue('/Users/kimotokensei/Desktop/kintone-oss/kintone-as-code');
+    vi.mocked(fs.rename).mockResolvedValue(undefined);
+    vi.mocked(fs.unlink).mockResolvedValue(undefined);
+
+    // This should not call process.exit for valid appId
+    await expect(
+      exportCommand({
+        appId: '123',
+        name: 'test-app',
+        includeRelated: false,
+        includeSubtable: false,
+      })
+    ).resolves.toBeUndefined();
+    
+    // Verify that process.exit was not called
+    expect(mockExit).not.toHaveBeenCalled();
+  });
+});
 
 describe('export command with --with-query option', () => {
   const mockClient = {
@@ -72,6 +180,12 @@ describe('export command with --with-query option', () => {
     fs.writeFile.mockResolvedValue(undefined);
     // @ts-ignore
     fs.readFile.mockRejectedValue(new Error('File not found'));
+    // @ts-ignore
+    fs.realpath.mockResolvedValue('/Users/kimotokensei/Desktop/kintone-oss/kintone-as-code');
+    // @ts-ignore
+    fs.rename.mockResolvedValue(undefined);
+    // @ts-ignore
+    fs.unlink.mockResolvedValue(undefined);
     // @ts-ignore
     loadConfig.mockResolvedValue({
       default: 'test',

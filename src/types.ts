@@ -20,7 +20,12 @@ export interface PasswordAuth {
   password: string;
 }
 
-export type AuthConfig = PasswordAuth; // APIトークン認証は非対応にします
+export interface ApiTokenAuth {
+  baseUrl: string;
+  apiToken: string;
+}
+
+export type AuthConfig = PasswordAuth | ApiTokenAuth;
 
 // Environment configuration
 export interface EnvironmentConfig {

@@ -515,12 +515,10 @@ export const applyCommand = async (options: ApplyOptions) => {
           // so make sure your config includes all options you want to keep.
           if (optionsChanged) {
             updates.options = {};
-
             // First, add all existing options (to preserve any that aren't being changed)
             for (const [key, value] of Object.entries(currentOptions)) {
               updates.options[key] = value;
             }
-
             // Then override with config options (this updates the labels)
             for (const [key, value] of Object.entries(configOptions)) {
               if (updates.options[key]) {
@@ -530,7 +528,6 @@ export const applyCommand = async (options: ApplyOptions) => {
                 };
               }
             }
-
             hasChanges = true;
           }
         }
