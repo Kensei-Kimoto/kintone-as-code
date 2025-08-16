@@ -98,9 +98,10 @@ describe('PAR-98: Output directory validation and project root restriction', () 
         expect(() => validateOutputDirectory('apps/my-schema_v1')).not.toThrow();
       });
 
-      it('should normalize and accept equivalent paths', () => {
+      it('should accept paths with dot segments but reject parent directory segments', () => {
         expect(() => validateOutputDirectory('apps/./schemas')).not.toThrow();
-        expect(() => validateOutputDirectory('apps/subfolder/../schemas')).not.toThrow();
+        // Parent directory segments are now strictly forbidden
+        expect(() => validateOutputDirectory('apps/subfolder/../schemas')).toThrow('Parent directory segments (..) are not allowed');
       });
     });
 
@@ -112,9 +113,10 @@ describe('PAR-98: Output directory validation and project root restriction', () 
         expect(validateOutputDirectory('.')).toBe(projectRoot);
       });
 
-      it('should handle path normalization correctly', () => {
+      it('should handle dot segment normalization correctly', () => {
         expect(validateOutputDirectory('apps/./schemas')).toBe(path.resolve(projectRoot, 'apps/schemas'));
-        expect(validateOutputDirectory('apps/subfolder/../schemas')).toBe(path.resolve(projectRoot, 'apps/schemas'));
+        // Parent directory segments are now rejected before normalization
+        expect(() => validateOutputDirectory('apps/subfolder/../schemas')).toThrow('Parent directory segments (..) are not allowed');
       });
     });
 

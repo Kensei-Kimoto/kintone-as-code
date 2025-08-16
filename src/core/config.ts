@@ -1,7 +1,7 @@
 import path from 'path';
 import dotenv from 'dotenv';
 import { Schema as S } from 'effect';
-import type { Config as AppConfig } from '../types.js';
+import type { Config as AppConfig, AuthConfig } from '../types.js';
 
 dotenv.config();
 
@@ -29,7 +29,7 @@ const ConfigSchema = S.Struct({
  * Parse authentication configuration from environment variables
  * @returns AuthConfig object with either password or API token authentication
  */
-export function parseAuthConfig(): any {
+export function parseAuthConfig(): AuthConfig {
   const baseUrl = process.env.KINTONE_BASE_URL;
   const username = process.env.KINTONE_USERNAME;
   const password = process.env.KINTONE_PASSWORD;

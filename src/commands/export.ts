@@ -104,9 +104,9 @@ export const validateOutputDirectory = (outputDir: string): string => {
     throw new Error('Invalid output directory: UNC paths are not allowed');
   }
   
-  // Reject paths that start with .. or have .. at the beginning of segments
-  // This prevents attacks like "../../../etc/passwd" while allowing "apps/../schemas" 
-  if (outputDir.startsWith('../') || outputDir.startsWith('..\\') || outputDir === '..') {
+  // Explicitly reject any parent directory segments before path resolution
+  // This prevents attacks like "../../../etc/passwd" and "apps/../apps2"
+  if (outputDir.split(/[\\/]+/).includes('..')) {
     throw new Error('Invalid output directory: Parent directory segments (..) are not allowed');
   }
 
