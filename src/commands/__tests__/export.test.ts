@@ -104,6 +104,9 @@ describe('export command appId validation', () => {
     vi.mocked(fs.mkdir).mockResolvedValue(undefined);
     vi.mocked(fs.readFile).mockRejectedValue(new Error('File not found'));
     vi.mocked(fs.writeFile).mockResolvedValue(undefined);
+    vi.mocked(fs.realpath).mockResolvedValue('/Users/kimotokensei/Desktop/kintone-oss/kintone-as-code');
+    vi.mocked(fs.rename).mockResolvedValue(undefined);
+    vi.mocked(fs.unlink).mockResolvedValue(undefined);
 
     // This should not call process.exit for valid appId
     await expect(
@@ -177,6 +180,12 @@ describe('export command with --with-query option', () => {
     fs.writeFile.mockResolvedValue(undefined);
     // @ts-ignore
     fs.readFile.mockRejectedValue(new Error('File not found'));
+    // @ts-ignore
+    fs.realpath.mockResolvedValue('/Users/kimotokensei/Desktop/kintone-oss/kintone-as-code');
+    // @ts-ignore
+    fs.rename.mockResolvedValue(undefined);
+    // @ts-ignore
+    fs.unlink.mockResolvedValue(undefined);
     // @ts-ignore
     loadConfig.mockResolvedValue({
       default: 'test',

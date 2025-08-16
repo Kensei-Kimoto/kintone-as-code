@@ -6,10 +6,7 @@ import { init } from './commands/init.js';
 import { exportCommand } from './commands/export.js';
 import { applyCommand } from './commands/apply.js';
 import { createCommand } from './commands/create.js';
-import { loadDotenvIfEnabled } from './core/dotenv-loader.js';
-
-// Auto-load .env file if enabled
-await loadDotenvIfEnabled();
+import { setupEnvLoading } from './core/env-utils.js';
 
 type ExportArgs = {
   'app-id': string;
@@ -77,6 +74,10 @@ yargs(hideBin(process.argv))
         type: 'string',
         description: 'Environment name',
       },
+      'env-file': {
+        type: 'string',
+        description: 'Path to .env file to load (optional, enables explicit env loading)',
+      },
       output: {
         type: 'string',
         description: 'Output directory',
@@ -115,6 +116,9 @@ yargs(hideBin(process.argv))
       },
     },
     async (argv: any) => {
+      // Set up env loading first
+      await setupEnvLoading(argv);
+      
       const a = argv as ExportArgs;
       // Normalize negation-friendly aliases first
       const normalizedWithRecordSchema =
@@ -156,6 +160,10 @@ yargs(hideBin(process.argv))
         type: 'string',
         description: 'Environment name',
       },
+      'env-file': {
+        type: 'string',
+        description: 'Path to .env file to load (optional, enables explicit env loading)',
+      },
       'add-subtable-child': {
         type: 'boolean',
         default: false,
@@ -164,6 +172,9 @@ yargs(hideBin(process.argv))
       },
     },
     async (argv: any) => {
+      // Set up env loading first
+      await setupEnvLoading(argv);
+      
       const a = argv as ApplyArgs;
       const options: any = {
         schema: a.schema,

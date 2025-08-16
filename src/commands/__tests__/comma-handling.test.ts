@@ -46,6 +46,9 @@ describe('app-ids.ts comma handling', () => {
       },
     });
     vi.mocked(fs.mkdir).mockResolvedValue(undefined);
+    vi.mocked(fs.realpath).mockResolvedValue('/Users/kimotokensei/Desktop/kintone-oss/kintone-as-code');
+    vi.mocked(fs.rename).mockResolvedValue(undefined);
+    vi.mocked(fs.unlink).mockResolvedValue(undefined);
   };
 
   it('should handle existing file with trailing comma correctly', async () => {
@@ -63,7 +66,8 @@ export const APP_IDS = {
     
     let writtenContent = '';
     vi.mocked(fs.writeFile).mockImplementation(async (path, content) => {
-      if (path.toString().endsWith('app-ids.ts')) {
+      // Capture content for both direct writes and temp file writes
+      if (path.toString().includes('app-ids.ts')) {
         writtenContent = content.toString();
       }
     });
@@ -96,7 +100,8 @@ export const APP_IDS = {
     
     let writtenContent = '';
     vi.mocked(fs.writeFile).mockImplementation(async (path, content) => {
-      if (path.toString().endsWith('app-ids.ts')) {
+      // Capture content for both direct writes and temp file writes
+      if (path.toString().includes('app-ids.ts')) {
         writtenContent = content.toString();
       }
     });
@@ -128,7 +133,8 @@ export const APP_IDS = {
     
     let writtenContent = '';
     vi.mocked(fs.writeFile).mockImplementation(async (path, content) => {
-      if (path.toString().endsWith('app-ids.ts')) {
+      // Capture content for both direct writes and temp file writes
+      if (path.toString().includes('app-ids.ts')) {
         writtenContent = content.toString();
       }
     });
