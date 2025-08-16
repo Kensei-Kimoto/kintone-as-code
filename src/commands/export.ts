@@ -48,7 +48,10 @@ export const APP_IDS = {
   }
 
   const constantName = toConstantName(appName);
-  const appIdNum = parseInt(appId, 10);
+  const appIdNum = Number.parseInt(appId, 10);
+  if (!Number.isFinite(appIdNum)) {
+    throw new Error(`Invalid appId: ${appId}`);
+  }
 
   // Check if APP_IDS already contains this app
   const appIdPattern = new RegExp(`^\\s*${constantName}:\\s*\\d+,?$`, 'm');
@@ -88,6 +91,12 @@ export const exportCommand = async (options: ExportOptions) => {
       throw new Error(
         `Invalid name: ${options.name}. Allowed characters are A-Z, a-z, 0-9, '_' and '-'.`
       );
+    }
+
+    // Validate appId
+    const appIdNum = Number.parseInt(options.appId, 10);
+    if (!Number.isFinite(appIdNum)) {
+      throw new Error(`Invalid appId: ${options.appId}`);
     }
 
     const config = await loadConfig();
