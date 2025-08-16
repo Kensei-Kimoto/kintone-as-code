@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { handleKintoneApiError, isAuthenticationError, isAuthorizationError, formatAuthErrorMessage } from '../error-utils.js';
+import { handleKintoneApiError, isAuthenticationError, isAuthorizationError, formatAuthErrorMessage, maskSensitiveInfo } from '../error-utils.js';
 
 describe('PAR-101: Authentication and Authorization Error Handling', () => {
   const originalConsoleError = console.error;
@@ -373,11 +373,11 @@ describe('PAR-101: Authentication and Authorization Error Handling', () => {
     it('should mask sensitive information in logs', () => {
       const error = {
         response: { status: 401 },
-        message: 'Invalid API token: abc123secret',
+        message: 'Invalid API token: abc123def456ghi789jkl012mno345pqr678stu',
         config: { 
           headers: { 
-            'X-Cybozu-API-Token': 'secret-token',
-            'Authorization': 'Bearer secret-bearer'
+            'X-Cybozu-API-Token': 'very-long-secret-token-12345678901234567890',
+            'Authorization': 'Bearer very-long-secret-bearer-token-12345678901234567890'
           }
         }
       };
@@ -386,10 +386,173 @@ describe('PAR-101: Authentication and Authorization Error Handling', () => {
 
       // Check all console.error calls for sensitive information
       const allErrorOutput = (console.error as any).mock.calls.map((call: any) => call[0]).join('\n');
-      expect(allErrorOutput).not.toContain('secret-token');
-      expect(allErrorOutput).not.toContain('secret-bearer');
-      expect(allErrorOutput).not.toContain('abc123secret');
+      expect(allErrorOutput).not.toContain('very-long-secret-token-12345678901234567890');
+      expect(allErrorOutput).not.toContain('very-long-secret-bearer-token-12345678901234567890');
+      expect(allErrorOutput).not.toContain('abc123def456ghi789jkl012mno345pqr678stu');
       expect(allErrorOutput).toContain('[REDACTED]');
+    });
+  });
+
+  describe('maskSensitiveInfo function', () => {
+
+    describe('should mask various token patterns', () => {
+      it('should mask API tokens with context', () => {
+        const examples = [
+          'API token: abc123def456ghi789jkl012mno345',
+          'api_token: xyz789uvw456rst123opq890lmn567',
+          'API-TOKEN: token123456789012345678901234567890',
+          'api key: key123456789012345678901234567890',
+          'API_KEY: anotherkey123456789012345678901234',
+          'access token: access123456789012345678901234567890',
+          'secret key: secret123456789012345678901234567890'
+        ];
+
+        for (const example of examples) {
+          const masked = maskSensitiveInfo(example);
+          expect(masked).toContain('[REDACTED]');
+          expect(masked).not.toMatch(/[a-zA-Z0-9]{20,}/);
+        }
+      });
+
+      it('should mask Bearer tokens', () => {
+        const examples = [
+          'Bearer abc123def456ghi789',
+          'Authorization: Bearer xyz789uvw456rst123opq890',
+          'bearer token123456789012345'
+        ];
+
+        for (const example of examples) {
+          const masked = maskSensitiveInfo(example);
+          expect(masked).toContain('[REDACTED]');
+          expect(masked).not.toMatch(/Bearer\s+[a-zA-Z0-9]+/);
+        }
+      });
+
+      it('should mask JWT-like tokens', () => {
+        const examples = [
+          'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c',
+          'realJWT.header.actualPayload.validSignature'
+        ];
+
+        for (const example of examples) {
+          const masked = maskSensitiveInfo(example);
+          expect(masked).toContain('[REDACTED]');
+        }
+      });
+
+      it('should mask Base64-like strings', () => {
+        const examples = [
+          'VGhpc0lzQVZlcnlMb25nQmFzZTY0U3RyaW5nVGhhdExvb2tzTGlrZUFUb2tlbg==',
+          'YWJjZGVmZ2hpamtsbW5vcHFyc3R1dnd4eXoxMjM0NTY3ODkw',
+          'ThisIsAVeryLongBase64StringThatLooksLikeAToken1234567890+/='
+        ];
+
+        for (const example of examples) {
+          const masked = maskSensitiveInfo(example);
+          expect(masked).toContain('[REDACTED]');
+        }
+      });
+
+      it('should mask UUID-like patterns', () => {
+        const examples = [
+          '550e8400-e29b-41d4-a716-446655440000',
+          '6ba7b810-9dad-11d1-80b4-00c04fd430c8',
+          'F47AC10B-58CC-4372-A567-0E02B2C3D479'
+        ];
+
+        for (const example of examples) {
+          const masked = maskSensitiveInfo(example);
+          expect(masked).toContain('[REDACTED]');
+        }
+      });
+
+      it('should mask password patterns', () => {
+        const examples = [
+          'password: secretpassword',
+          'password=mypassword123',
+          'password secretpass'
+        ];
+
+        for (const example of examples) {
+          const masked = maskSensitiveInfo(example);
+          expect(masked).toContain('[REDACTED]');
+          expect(masked).toContain('password');
+          expect(masked).not.toContain('secretpassword');
+          expect(masked).not.toContain('mypassword123');
+          expect(masked).not.toContain('secretpass');
+        }
+      });
+    });
+
+    describe('should NOT mask safe strings', () => {
+      it('should preserve normal words and phrases', () => {
+        const safeStrings = [
+          'credentials',
+          'authentication',
+          'Permission denied',
+          'Invalid request',
+          'Error processing',
+          'database connection',
+          'user authentication failed',
+          'This is a normal sentence with words',
+          'file123.txt',
+          'version1.2.3',
+          'app-name-v2',
+          'short-string'
+        ];
+
+        for (const safeString of safeStrings) {
+          const masked = maskSensitiveInfo(safeString);
+          expect(masked).toBe(safeString);
+        }
+      });
+
+      it('should preserve URLs and paths', () => {
+        const safeStrings = [
+          'https://example.com/path',
+          '/path/to/file.txt',
+          'C:\\Users\\username\\file.txt',
+          'application-name',
+          'database-connection-string'
+        ];
+
+        for (const safeString of safeStrings) {
+          const masked = maskSensitiveInfo(safeString);
+          expect(masked).toBe(safeString);
+        }
+      });
+
+      it('should preserve version numbers and identifiers', () => {
+        const safeStrings = [
+          'v1.2.3',
+          'build-123',
+          'release-2023.1',
+          'commit-abc123d',
+          'issue-456'
+        ];
+
+        for (const safeString of safeStrings) {
+          const masked = maskSensitiveInfo(safeString);
+          expect(masked).toBe(safeString);
+        }
+      });
+    });
+
+    describe('should handle edge cases', () => {
+      it('should handle empty and null inputs', () => {
+        expect(maskSensitiveInfo('')).toBe('');
+        expect(maskSensitiveInfo(null as any)).toBe(null);
+        expect(maskSensitiveInfo(undefined as any)).toBe(undefined);
+      });
+
+      it('should handle mixed content', () => {
+        const mixed = 'Error: API token abc123def456ghi789jkl012mno345 is invalid for user credentials';
+        const masked = maskSensitiveInfo(mixed);
+        
+        expect(masked).toContain('[REDACTED]');
+        expect(masked).toContain('credentials');
+        expect(masked).not.toContain('abc123def456ghi789jkl012mno345');
+      });
     });
   });
 });

@@ -275,18 +275,38 @@ function logStructuredError(error: any): void {
 /**
  * Mask sensitive information in error messages and logs
  */
-function maskSensitiveInfo(text: string): string {
+export function maskSensitiveInfo(text: string): string {
   if (!text) return text;
   
-  // Mask API tokens (context-sensitive to avoid masking normal words)
-  text = text.replace(/(\b[a-zA-Z0-9]{15,}\b)/g, '[REDACTED]');
-  text = text.replace(/(token[:\s]+)([a-zA-Z0-9]{8,})/gi, '$1[REDACTED]');
-  text = text.replace(/(key[:\s]+)([a-zA-Z0-9]{8,})/gi, '$1[REDACTED]');
+  // Context-based patterns (run first to avoid false positives)
   
-  // Mask bearer tokens
+  // Mask API tokens with known prefixes
+  text = text.replace(/(api[_\s-]*token[:\s]+)([a-zA-Z0-9]{20,})/gi, '$1[REDACTED]');
+  text = text.replace(/(api[_\s-]*key[:\s]+)([a-zA-Z0-9]{20,})/gi, '$1[REDACTED]');
+  text = text.replace(/(access[_\s-]*token[:\s]+)([a-zA-Z0-9]{20,})/gi, '$1[REDACTED]');
+  text = text.replace(/(secret[_\s-]*key[:\s]+)([a-zA-Z0-9]{20,})/gi, '$1[REDACTED]');
+  
+  // Generic token/key patterns with context
+  text = text.replace(/(token[:\s]+)([a-zA-Z0-9]{20,})/gi, '$1[REDACTED]');
+  text = text.replace(/(key[:\s]+)([a-zA-Z0-9]{20,})/gi, '$1[REDACTED]');
+  
+  // Bearer tokens
   text = text.replace(/Bearer\s+[^\s]+/gi, 'Bearer [REDACTED]');
   
-  // Mask potential passwords
+  // Authorization headers
+  text = text.replace(/(authorization[:\s]+bearer\s+)([a-zA-Z0-9+/=._-]+)/gi, '$1[REDACTED]');
+  
+  // Base64-like strings with typical token characteristics (length 30+, mixed case, symbols)
+  // Avoid matching common words with hyphens or version numbers
+  text = text.replace(/\b[A-Za-z0-9+/]{30,}={0,2}\b/g, '[REDACTED]');
+  
+  // JWT-like patterns (three base64 segments separated by dots, each segment 4+ chars)
+  text = text.replace(/\b[a-zA-Z0-9_-]{4,}\.[a-zA-Z0-9_-]{4,}\.[a-zA-Z0-9_-]{4,}\b/g, '[REDACTED]');
+  
+  // UUID-like patterns that might be secrets
+  text = text.replace(/\b[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}\b/gi, '[REDACTED]');
+  
+  // Password patterns
   text = text.replace(/password[:\s]*[^\s,}]+/gi, 'password: [REDACTED]');
   
   return text;
