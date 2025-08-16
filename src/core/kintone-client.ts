@@ -5,13 +5,28 @@ import { type AuthConfig, type FieldUpdatePayload } from '../types.js';
 dotenv.config();
 
 export const getKintoneClient = (authConfig: AuthConfig) => {
-  return new KintoneRestAPIClient({
-    baseUrl: authConfig.baseUrl,
-    auth: {
-      username: authConfig.username,
-      password: authConfig.password,
-    },
-  });
+  // Type guard to check if config has API token
+  if ('apiToken' in authConfig) {
+    return new KintoneRestAPIClient({
+      baseUrl: authConfig.baseUrl,
+      auth: {
+        apiToken: authConfig.apiToken,
+      },
+    });
+  }
+
+  // Type guard to check if config has username/password
+  if ('username' in authConfig && 'password' in authConfig) {
+    return new KintoneRestAPIClient({
+      baseUrl: authConfig.baseUrl,
+      auth: {
+        username: authConfig.username,
+        password: authConfig.password,
+      },
+    });
+  }
+
+  throw new Error('Invalid auth configuration: must provide either apiToken or username/password');
 };
 
 // Wrapper to allow partial updates while keeping call sites type-safe

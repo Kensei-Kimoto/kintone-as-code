@@ -6,20 +6,7 @@ import { init } from './commands/init.js';
 import { exportCommand } from './commands/export.js';
 import { applyCommand } from './commands/apply.js';
 import { createCommand } from './commands/create.js';
-import fs from 'fs';
-import path from 'path';
-
-// Auto-load .env file if it exists (for convenience)
-const envPath = path.join(process.cwd(), '.env');
-if (fs.existsSync(envPath)) {
-  try {
-    // Dynamic import to avoid requiring dotenv as a dependency
-    const dotenv = await import('dotenv');
-    dotenv.config({ path: envPath });
-  } catch {
-    // dotenv not installed, skip auto-loading
-  }
-}
+import { setupEnvLoading } from './core/env-utils.js';
 
 type ExportArgs = {
   'app-id': string;
@@ -87,6 +74,10 @@ yargs(hideBin(process.argv))
         type: 'string',
         description: 'Environment name',
       },
+      'env-file': {
+        type: 'string',
+        description: 'Path to .env file to load (optional, enables explicit env loading)',
+      },
       output: {
         type: 'string',
         description: 'Output directory',
@@ -124,7 +115,10 @@ yargs(hideBin(process.argv))
           'Include subtable child fields (only supports in/not in operators) (default: false)',
       },
     },
-    (argv: any) => {
+    async (argv: any) => {
+      // Set up env loading first
+      await setupEnvLoading(argv);
+      
       const a = argv as ExportArgs;
       // Normalize negation-friendly aliases first
       const normalizedWithRecordSchema =
@@ -135,7 +129,7 @@ yargs(hideBin(process.argv))
         (a as any)['query'] !== undefined
           ? (a as any)['query']
           : a['with-query'];
-      exportCommand({
+      await exportCommand({
         appId: a['app-id'],
         name: a.name,
         env: a.env,
@@ -166,6 +160,10 @@ yargs(hideBin(process.argv))
         type: 'string',
         description: 'Environment name',
       },
+      'env-file': {
+        type: 'string',
+        description: 'Path to .env file to load (optional, enables explicit env loading)',
+      },
       'add-subtable-child': {
         type: 'boolean',
         default: false,
@@ -173,7 +171,10 @@ yargs(hideBin(process.argv))
           'Experimental: add missing subtable child fields automatically',
       },
     },
-    (argv: any) => {
+    async (argv: any) => {
+      // Set up env loading first
+      await setupEnvLoading(argv);
+      
       const a = argv as ApplyArgs;
       const options: any = {
         schema: a.schema,
@@ -185,7 +186,7 @@ yargs(hideBin(process.argv))
       if (a['app-id']) {
         options.appId = a['app-id'];
       }
-      applyCommand(options);
+      await applyCommand(options);
     }
   )
   .command(
@@ -214,9 +215,9 @@ yargs(hideBin(process.argv))
         description: 'Thread ID in the space',
       },
     },
-    (argv: any) => {
+    async (argv: any) => {
       const a = argv as CreateArgs;
-      createCommand({
+      await createCommand({
         schema: a.schema,
         name: a.name,
         env: a.env,
