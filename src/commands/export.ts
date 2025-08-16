@@ -65,13 +65,11 @@ export const APP_IDS = {
       const before = content.substring(0, insertPos);
       const after = content.substring(insertPos);
 
-      // Check if we need a comma
-      const needsComma = before.trim().endsWith('}')
-        ? ''
-        : before.match(/\d+\s*$/m)
-          ? ','
-          : '';
-      content = `${before}${needsComma}
+      // 直前トークンに基づく安全なカンマ付与
+      const beforeNoTrailingWS = before.replace(/\s+$/, '');
+      const lastChar = beforeNoTrailingWS.slice(-1);
+      const needsComma = lastChar && lastChar !== '{' && lastChar !== ',' ? ',' : '';
+      content = `${beforeNoTrailingWS}${needsComma}
   ${constantName}: ${appIdNum},
 ${after}`;
     }
