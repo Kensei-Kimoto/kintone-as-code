@@ -83,7 +83,7 @@ export const validateFileName = (name: string): string => {
  * @returns The normalized absolute path within the project root
  * @throws Error if the path is invalid or would escape the project root
  */
-export const validateOutputDirectory = (outputDir: string): string => {
+export const validateOutputDirectory = async (outputDir: string): Promise<string> => {
   // Check for empty or whitespace-only paths
   if (!outputDir || outputDir.trim() === '') {
     throw new Error('Invalid output directory: Directory path cannot be empty');
@@ -115,8 +115,8 @@ export const validateOutputDirectory = (outputDir: string): string => {
     throw new Error('Invalid output directory: Multiple consecutive dots are not allowed');
   }
 
-  // Get the project root (current working directory)
-  const projectRoot = process.cwd();
+  // Get the project root (current working directory) and resolve symlinks
+  const projectRoot = await fs.realpath(process.cwd());
   
   // Resolve the output directory path relative to project root
   const resolvedPath = path.resolve(projectRoot, outputDir);
@@ -124,9 +124,19 @@ export const validateOutputDirectory = (outputDir: string): string => {
   // Normalize the path to handle . and .. components
   const normalizedPath = path.normalize(resolvedPath);
   
-  // Check if the resolved path is within the project root
+  // Resolve symlinks to prevent symlink-based directory escapes
+  let realPath: string;
+  try {
+    realPath = await fs.realpath(normalizedPath);
+  } catch {
+    // If realpath fails (path doesn't exist), use the normalized path
+    // This allows creating new directories while still preventing escapes
+    realPath = normalizedPath;
+  }
+  
+  // Check if the real path is within the project root
   // Use path.relative to check if we need to go up from project root to reach the target
-  const relativePath = path.relative(projectRoot, normalizedPath);
+  const relativePath = path.relative(projectRoot, realPath);
   
   // If relativePath is empty, it's the project root itself (valid)
   // If relativePath starts with '..' or is an absolute path, it's outside project root (invalid)
@@ -137,13 +147,20 @@ export const validateOutputDirectory = (outputDir: string): string => {
   return normalizedPath;
 };
 
-// Convert name to constant format (e.g., "my-app" -> "MY_APP")
+// Convert name to constant format (e.g., "my-app" -> "MY_APP", "123-app" -> "APP_123")
 const toConstantName = (name: string): string => {
   // Convert to CONSTANT_CASE with enhanced handling
-  return name
+  let constantName = name
     .replace(/([a-z])([A-Z])/g, '$1_$2')
     .replace(/[\s-]+/g, '_')
     .toUpperCase();
+  
+  // Ensure the identifier doesn't start with a number (TypeScript requirement)
+  if (/^[0-9]/.test(constantName)) {
+    constantName = `APP_${constantName}`;
+  }
+  
+  return constantName;
 };
 
 // Update or create app-ids.ts file
@@ -196,7 +213,21 @@ ${after}`;
     }
   }
 
-  await fs.writeFile(appIdsPath, content, 'utf-8');
+  // Atomic file writing to prevent concurrent update conflicts
+  const tempPath = `${appIdsPath}.tmp.${Date.now()}.${Math.random().toString(36).substring(2, 11)}`;
+  try {
+    await fs.writeFile(tempPath, content, 'utf-8');
+    await fs.rename(tempPath, appIdsPath);
+  } catch (error) {
+    // Clean up temp file if operation failed
+    try {
+      await fs.unlink(tempPath);
+    } catch {
+      // Ignore cleanup errors
+    }
+    throw error;
+  }
+  
   return constantName;
 };
 
@@ -238,7 +269,7 @@ export const exportCommand = async (options: ExportOptions) => {
 
     // Validate and resolve output directory within project root
     const rawOutputDir = options.output || 'apps';
-    const outputDir = validateOutputDirectory(rawOutputDir);
+    const outputDir = await validateOutputDirectory(rawOutputDir);
     await fs.mkdir(outputDir, { recursive: true });
 
     const outputPath = path.join(outputDir, `${name}.schema.ts`);
@@ -251,7 +282,7 @@ export const exportCommand = async (options: ExportOptions) => {
       // Prefer static record schema generation using the properties from parsed form
       const recordSchemaContent = generateStaticRecordSchemaCode(
         name,
-        formFields.properties as any
+        formFields.properties as Record<string, any>
       );
       const recordSchemaPath = path.join(
         outputDir,

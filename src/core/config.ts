@@ -1,9 +1,6 @@
 import path from 'path';
-import dotenv from 'dotenv';
 import { Schema as S } from 'effect';
 import type { Config as AppConfig, AuthConfig } from '../types.js';
-
-dotenv.config();
 
 // Runtime validation schema for configuration
 const PasswordAuthSchema = S.Struct({
@@ -30,10 +27,11 @@ const ConfigSchema = S.Struct({
  * @returns AuthConfig object with either password or API token authentication
  */
 export function parseAuthConfig(): AuthConfig {
-  const baseUrl = process.env.KINTONE_BASE_URL;
-  const username = process.env.KINTONE_USERNAME;
-  const password = process.env.KINTONE_PASSWORD;
-  const apiToken = process.env.KINTONE_API_TOKEN;
+  // Trim environment variables to prevent whitespace-only inputs
+  const baseUrl = process.env.KINTONE_BASE_URL?.trim();
+  const username = process.env.KINTONE_USERNAME?.trim();
+  const password = process.env.KINTONE_PASSWORD?.trim();
+  const apiToken = process.env.KINTONE_API_TOKEN?.trim();
 
   if (!baseUrl) {
     throw new Error('KINTONE_BASE_URL environment variable is required');
@@ -72,6 +70,6 @@ export async function loadConfig(): Promise<AppConfig> {
     }
     return cfg as AppConfig;
   } catch (error) {
-    throw new Error(`Failed to load config file: ${error}`);
+    throw new Error(`Failed to load config file: ${error}`, { cause: error });
   }
 }
