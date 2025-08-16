@@ -324,6 +324,48 @@ describe('PAR-100: API Token Authentication Support', () => {
         expect(() => parseAuthConfig()).toThrow();
       });
     });
+
+    describe('should reject non-HTTPS URLs from environment variables', () => {
+      it('should reject http URL with password auth', () => {
+        process.env.KINTONE_BASE_URL = 'http://test.cybozu.com';
+        process.env.KINTONE_USERNAME = 'testuser';
+        process.env.KINTONE_PASSWORD = 'testpass';
+        
+        expect(() => parseAuthConfig()).toThrow();
+      });
+
+      it('should reject http URL with API token auth', () => {
+        process.env.KINTONE_BASE_URL = 'http://test.cybozu.com';
+        process.env.KINTONE_API_TOKEN = 'abc123xyz789';
+        
+        expect(() => parseAuthConfig()).toThrow();
+      });
+
+      it('should reject non-URL strings with password auth', () => {
+        process.env.KINTONE_BASE_URL = 'not-a-url';
+        process.env.KINTONE_USERNAME = 'testuser';
+        process.env.KINTONE_PASSWORD = 'testpass';
+        
+        expect(() => parseAuthConfig()).toThrow();
+      });
+
+      it('should reject ftp URL with API token auth', () => {
+        process.env.KINTONE_BASE_URL = 'ftp://test.cybozu.com';
+        process.env.KINTONE_API_TOKEN = 'abc123xyz789';
+        
+        expect(() => parseAuthConfig()).toThrow();
+      });
+
+      it('should accept valid https URLs', () => {
+        process.env.KINTONE_BASE_URL = 'https://test.cybozu.com';
+        process.env.KINTONE_API_TOKEN = 'abc123xyz789';
+        
+        expect(() => parseAuthConfig()).not.toThrow();
+        
+        const config = parseAuthConfig();
+        expect(config.baseUrl).toBe('https://test.cybozu.com');
+      });
+    });
   });
 
   describe('getKintoneClient integration', () => {
