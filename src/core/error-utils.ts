@@ -99,7 +99,7 @@ export function formatAuthErrorMessage(error: any): string {
     if (error.code) {
       message += `Error code: ${error.code} - `;
     }
-    message += error.message || 'Invalid credentials';
+    message += maskSensitiveInfo(error.message || 'Invalid credentials');
     message += '\n\n';
     message += 'Please check your:\n';
     message += '• Username and password (if using password authentication)\n';
@@ -114,7 +114,7 @@ export function formatAuthErrorMessage(error: any): string {
     if (error.code) {
       message += `Error code: ${error.code} - `;
     }
-    message += error.message || 'Permission denied';
+    message += maskSensitiveInfo(error.message || 'Permission denied');
     message += '\n\n';
     message += 'This operation requires additional permissions.\n';
     message += 'Please contact your Kintone administrator to:\n';
@@ -123,7 +123,7 @@ export function formatAuthErrorMessage(error: any): string {
     message += '• Check space or thread access rights';
   } else {
     message += '⚠️ Authentication or authorization failed: ';
-    message += error.message || 'Unknown error';
+    message += maskSensitiveInfo(error.message || 'Unknown error');
     message += '\n\nPlease verify your credentials and permissions.';
   }
   
@@ -278,8 +278,10 @@ function logStructuredError(error: any): void {
 function maskSensitiveInfo(text: string): string {
   if (!text) return text;
   
-  // Mask API tokens
-  text = text.replace(/([a-zA-Z0-9]{10,})/g, '[REDACTED]');
+  // Mask API tokens (context-sensitive to avoid masking normal words)
+  text = text.replace(/(\b[a-zA-Z0-9]{15,}\b)/g, '[REDACTED]');
+  text = text.replace(/(token[:\s]+)([a-zA-Z0-9]{8,})/gi, '$1[REDACTED]');
+  text = text.replace(/(key[:\s]+)([a-zA-Z0-9]{8,})/gi, '$1[REDACTED]');
   
   // Mask bearer tokens
   text = text.replace(/Bearer\s+[^\s]+/gi, 'Bearer [REDACTED]');

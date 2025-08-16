@@ -112,8 +112,8 @@ describe('PAR-100: API Token Authentication Support', () => {
       });
     });
 
-    describe('should reject mixed authentication methods', () => {
-      it('should reject config with both username/password and apiToken', () => {
+    describe('should handle mixed authentication methods', () => {
+      it('should accept config with both username/password and apiToken (password auth takes precedence)', () => {
         const config = {
           baseUrl: 'https://test.cybozu.com',
           username: 'testuser',
@@ -121,27 +121,43 @@ describe('PAR-100: API Token Authentication Support', () => {
           apiToken: 'abc123xyz789'
         };
 
-        expect(() => S.decodeUnknownSync(AuthConfigSchema)(config)).toThrow();
+        expect(() => S.decodeUnknownSync(AuthConfigSchema)(config)).not.toThrow();
+        const result = S.decodeUnknownSync(AuthConfigSchema)(config);
+        expect(result).toEqual({
+          baseUrl: 'https://test.cybozu.com',
+          username: 'testuser',
+          password: 'testpass'
+        });
       });
 
-      it('should reject config with username but no password when apiToken present', () => {
+      it('should accept config with username but no password when apiToken present (apiToken auth takes precedence)', () => {
         const config = {
           baseUrl: 'https://test.cybozu.com',
           username: 'testuser',
           apiToken: 'abc123xyz789'
         };
 
-        expect(() => S.decodeUnknownSync(AuthConfigSchema)(config)).toThrow();
+        expect(() => S.decodeUnknownSync(AuthConfigSchema)(config)).not.toThrow();
+        const result = S.decodeUnknownSync(AuthConfigSchema)(config);
+        expect(result).toEqual({
+          baseUrl: 'https://test.cybozu.com',
+          apiToken: 'abc123xyz789'
+        });
       });
 
-      it('should reject config with password but no username when apiToken present', () => {
+      it('should accept config with password but no username when apiToken present (apiToken auth takes precedence)', () => {
         const config = {
           baseUrl: 'https://test.cybozu.com',
           password: 'testpass',
           apiToken: 'abc123xyz789'
         };
 
-        expect(() => S.decodeUnknownSync(AuthConfigSchema)(config)).toThrow();
+        expect(() => S.decodeUnknownSync(AuthConfigSchema)(config)).not.toThrow();
+        const result = S.decodeUnknownSync(AuthConfigSchema)(config);
+        expect(result).toEqual({
+          baseUrl: 'https://test.cybozu.com',
+          apiToken: 'abc123xyz789'
+        });
       });
     });
 

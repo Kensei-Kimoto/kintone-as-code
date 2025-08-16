@@ -7,14 +7,14 @@ dotenv.config();
 
 // Runtime validation schema for configuration
 const PasswordAuthSchema = S.Struct({
-  baseUrl: S.String,
-  username: S.String,
-  password: S.String,
+  baseUrl: S.String.pipe(S.startsWith('https://')),
+  username: S.String.pipe(S.minLength(1)),
+  password: S.String.pipe(S.minLength(1)),
 });
 
 const ApiTokenAuthSchema = S.Struct({
-  baseUrl: S.String,
-  apiToken: S.String,
+  baseUrl: S.String.pipe(S.startsWith('https://')),
+  apiToken: S.String.pipe(S.minLength(1)),
 });
 
 // Union schema for auth config - either password or API token
