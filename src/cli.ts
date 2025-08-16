@@ -6,20 +6,10 @@ import { init } from './commands/init.js';
 import { exportCommand } from './commands/export.js';
 import { applyCommand } from './commands/apply.js';
 import { createCommand } from './commands/create.js';
-import fs from 'fs';
-import path from 'path';
+import { loadDotenvIfEnabled } from './core/dotenv-loader.js';
 
-// Auto-load .env file if it exists (for convenience)
-const envPath = path.join(process.cwd(), '.env');
-if (fs.existsSync(envPath)) {
-  try {
-    // Dynamic import to avoid requiring dotenv as a dependency
-    const dotenv = await import('dotenv');
-    dotenv.config({ path: envPath });
-  } catch {
-    // dotenv not installed, skip auto-loading
-  }
-}
+// Auto-load .env file if enabled
+await loadDotenvIfEnabled();
 
 type ExportArgs = {
   'app-id': string;
