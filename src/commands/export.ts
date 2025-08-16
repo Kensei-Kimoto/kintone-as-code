@@ -48,6 +48,9 @@ export const APP_IDS = {
   }
 
   const constantName = toConstantName(appName);
+  if (!/^\d+$/.test(appId)) {
+    throw new Error(`Invalid appId: ${appId}`);
+  }
   const appIdNum = Number.parseInt(appId, 10);
   if (!Number.isFinite(appIdNum)) {
     throw new Error(`Invalid appId: ${appId}`);
@@ -92,6 +95,9 @@ export const exportCommand = async (options: ExportOptions) => {
     }
 
     // Validate appId
+    if (!/^\d+$/.test(options.appId)) {
+      throw new Error(`Invalid appId: ${options.appId}`);
+    }
     const appIdNum = Number.parseInt(options.appId, 10);
     if (!Number.isFinite(appIdNum)) {
       throw new Error(`Invalid appId: ${options.appId}`);

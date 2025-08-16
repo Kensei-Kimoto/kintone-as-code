@@ -54,6 +54,34 @@ describe('export command appId validation', () => {
     expect(mockExit).toHaveBeenCalledWith(1);
   });
 
+  it('should throw error for appId with mixed characters (123abc)', async () => {
+    mockExit.mockClear();
+    await expect(
+      exportCommand({
+        appId: '123abc',
+        name: 'test-app',
+        includeRelated: false,
+        includeSubtable: false,
+      })
+    ).rejects.toThrow('process.exit called');
+    
+    expect(mockExit).toHaveBeenCalledWith(1);
+  });
+
+  it('should throw error for appId starting with letters (abc123)', async () => {
+    mockExit.mockClear();
+    await expect(
+      exportCommand({
+        appId: 'abc123',
+        name: 'test-app',
+        includeRelated: false,
+        includeSubtable: false,
+      })
+    ).rejects.toThrow('process.exit called');
+    
+    expect(mockExit).toHaveBeenCalledWith(1);
+  });
+
   it('should accept valid numeric appId', async () => {
     mockExit.mockClear();
     const mockClient = {
