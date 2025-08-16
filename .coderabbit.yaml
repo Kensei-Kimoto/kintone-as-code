@@ -26,9 +26,7 @@ reviews:
   suggested_reviewers: true
   auto_assign_reviewers: false
   poem: true
-  labeling_instructions:
-    - label: ''
-      instructions: ''
+  labeling_instructions: []
   # 注意: path_filters は「含める（allow-list）」です。ここに書いたものだけがレビュー対象になります。
   # レビューしたいパスを明示します。
   path_filters:
@@ -184,10 +182,6 @@ knowledge_base:
 code_generation:
   docstrings:
     language: en-US
-    path_instructions:
-      - path: ''
-        instructions: ''
+    path_instructions: []
   unit_tests:
-    path_instructions:
-      - path: ''
-        instructions: ''
+    path_instructions: []
