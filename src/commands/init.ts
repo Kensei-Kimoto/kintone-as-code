@@ -1,6 +1,9 @@
 import fs from 'fs/promises';
 import path from 'path';
 
+// Version constant for DRY principle
+const KAC_DEP_VERSION = '^0.6.1';
+
 const configTemplate = `import dotenv from 'dotenv';
 dotenv.config();
 
@@ -146,7 +149,7 @@ export const init = async ({
 
       // Add required dependencies for schemas to work
       if (!packageJson.dependencies['kintone-as-code']) {
-        packageJson.dependencies['kintone-as-code'] = '^0.6.1';
+        packageJson.dependencies['kintone-as-code'] = KAC_DEP_VERSION;
       }
       if (!packageJson.dependencies['kintone-effect-schema']) {
         packageJson.dependencies['kintone-effect-schema'] = '^0.8.0';
@@ -196,7 +199,7 @@ export const init = async ({
         create: 'kintone-as-code create',
       },
       dependencies: {
-        'kintone-as-code': '^0.6.1',
+        'kintone-as-code': KAC_DEP_VERSION,
         'kintone-effect-schema': '^0.8.0',
         dotenv: '^16.3.1',
         effect: '^3.0.0',
