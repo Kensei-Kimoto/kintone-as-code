@@ -98,6 +98,6 @@ export async function loadSchema(schemaPath: string): Promise<AppSchema> {
 
     throw new Error(`Unsupported schema file extension: ${ext}`);
   } catch (error) {
-    throw new Error(`Failed to load schema from ${schemaPath}: ${error}`);
+    throw new Error(`Failed to load schema from ${schemaPath}`, { cause: error as Error });
   }
 }
