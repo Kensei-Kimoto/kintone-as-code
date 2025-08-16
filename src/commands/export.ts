@@ -19,6 +19,118 @@ interface ExportOptions {
   includeSubtable: boolean;
 }
 
+// Windows reserved file names
+const WINDOWS_RESERVED_NAMES = new Set([
+  'CON', 'PRN', 'AUX', 'NUL',
+  'COM1', 'COM2', 'COM3', 'COM4', 'COM5', 'COM6', 'COM7', 'COM8', 'COM9',
+  'LPT1', 'LPT2', 'LPT3', 'LPT4', 'LPT5', 'LPT6', 'LPT7', 'LPT8', 'LPT9'
+]);
+
+/**
+ * Validates and sanitizes file names to prevent path traversal and other security issues
+ * @param name - The file name to validate
+ * @returns The validated file name
+ * @throws Error if the file name is invalid
+ */
+export const validateFileName = (name: string): string => {
+  // Check for empty or whitespace-only names
+  if (!name || name.trim() === '') {
+    throw new Error('Invalid file name: File name cannot be empty');
+  }
+
+  // Check length limit (128 characters)
+  if (name.length > 128) {
+    throw new Error('Invalid file name: File name too long (max 128 characters)');
+  }
+
+  // Check for path traversal patterns
+  if (name.includes('..')) {
+    throw new Error('Invalid file name: File name cannot contain ".."');
+  }
+
+  // Check for path separators
+  if (name.includes('/') || name.includes('\\')) {
+    throw new Error('Invalid file name: File name cannot contain path separators');
+  }
+
+  // Check for absolute path indicators
+  if (name.startsWith('/') || /^[A-Za-z]:/.test(name)) {
+    throw new Error('Invalid file name: File name cannot be an absolute path');
+  }
+
+  // Check for whitespace
+  if (/\s/.test(name)) {
+    throw new Error('Invalid file name: File name cannot contain whitespace');
+  }
+
+  // Check for special characters - only allow alphanumeric, hyphens, and underscores
+  if (!/^[A-Za-z0-9_-]+$/.test(name)) {
+    throw new Error('Invalid file name: File name can only contain alphanumeric characters, hyphens, and underscores');
+  }
+
+  // Check for Windows reserved names (case insensitive)
+  const upperName = name.toUpperCase();
+  if (WINDOWS_RESERVED_NAMES.has(upperName)) {
+    throw new Error(`Invalid file name: "${name}" is a reserved Windows file name`);
+  }
+
+  return name;
+};
+
+/**
+ * Validates and normalizes output directory paths to prevent directory traversal attacks
+ * @param outputDir - The output directory path to validate
+ * @returns The normalized absolute path within the project root
+ * @throws Error if the path is invalid or would escape the project root
+ */
+export const validateOutputDirectory = (outputDir: string): string => {
+  // Check for empty or whitespace-only paths
+  if (!outputDir || outputDir.trim() === '') {
+    throw new Error('Invalid output directory: Directory path cannot be empty');
+  }
+
+  // Check for null bytes
+  if (outputDir.includes('\x00')) {
+    throw new Error('Invalid output directory: Directory path cannot contain null bytes');
+  }
+
+  // Check for absolute paths (including Windows drive letters)
+  if (path.isAbsolute(outputDir) || /^[A-Za-z]:/.test(outputDir)) {
+    throw new Error('Invalid output directory: Absolute paths are not allowed');
+  }
+  
+  // Check for UNC paths (Windows network paths)
+  if (outputDir.startsWith('\\\\') || outputDir.startsWith('//')) {
+    throw new Error('Invalid output directory: UNC paths are not allowed');
+  }
+  
+  // Check for suspicious patterns
+  if (outputDir.includes('....') || outputDir.includes('...')) {
+    throw new Error('Invalid output directory: Multiple consecutive dots are not allowed');
+  }
+
+  // Get the project root (current working directory)
+  const projectRoot = process.cwd();
+  
+  // Resolve the output directory path relative to project root
+  const resolvedPath = path.resolve(projectRoot, outputDir);
+  
+  // Normalize the path to handle . and .. components
+  const normalizedPath = path.normalize(resolvedPath);
+  
+  // Check if the resolved path is within the project root
+  // Use path.relative to check if we need to go up from project root to reach the target
+  const relativePath = path.relative(projectRoot, normalizedPath);
+  
+  // If relativePath is empty, it's the project root itself (valid)
+  // If relativePath starts with '..' or is an absolute path, it's outside project root (invalid)
+  if (relativePath && (relativePath.startsWith('..') || path.isAbsolute(relativePath))) {
+    throw new Error(`Invalid output directory: Path "${outputDir}" would resolve outside project root`);
+  }
+  
+  return normalizedPath;
+};
+
 // Convert name to constant format (e.g., "my-app" -> "MY_APP")
 const toConstantName = (name: string): string => {
   // Convert to CONSTANT_CASE with enhanced handling
@@ -85,14 +197,8 @@ ${after}`;
 // Export command main function - handles schema export from kintone apps
 export const exportCommand = async (options: ExportOptions) => {
   try {
-    // Validate name (sanitize)
-    const name = options.name.trim();
-    const NAME_RE = /^[A-Za-z0-9_-]+$/;
-    if (!NAME_RE.test(name)) {
-      throw new Error(
-        `Invalid name: ${options.name}. Allowed characters are A-Z, a-z, 0-9, '_' and '-'.`
-      );
-    }
+    // Validate and sanitize file name
+    const name = validateFileName(options.name);
 
     // Validate appId
     if (!/^\d+$/.test(options.appId)) {
@@ -125,20 +231,11 @@ export const exportCommand = async (options: ExportOptions) => {
     );
 
     // Validate and resolve output directory within project root
-    const cwd = process.cwd();
     const rawOutputDir = options.output || 'apps';
-    const resolvedOutputDir = path.resolve(cwd, rawOutputDir);
-    if (
-      resolvedOutputDir !== cwd &&
-      !resolvedOutputDir.startsWith(cwd + path.sep)
-    ) {
-      throw new Error(
-        `Invalid output directory: ${rawOutputDir}. Must be within project root.`
-      );
-    }
-    await fs.mkdir(resolvedOutputDir, { recursive: true });
+    const outputDir = validateOutputDirectory(rawOutputDir);
+    await fs.mkdir(outputDir, { recursive: true });
 
-    const outputPath = path.join(resolvedOutputDir, `${name}.schema.ts`);
+    const outputPath = path.join(outputDir, `${name}.schema.ts`);
     await fs.writeFile(outputPath, schemaContent, 'utf-8');
 
     console.log(`Successfully exported schema to ${outputPath}`);
@@ -151,7 +248,7 @@ export const exportCommand = async (options: ExportOptions) => {
         formFields.properties as any
       );
       const recordSchemaPath = path.join(
-        resolvedOutputDir,
+        outputDir,
         `${name}.record-schema.ts`
       );
       await fs.writeFile(recordSchemaPath, recordSchemaContent, 'utf-8');
@@ -164,7 +261,7 @@ export const exportCommand = async (options: ExportOptions) => {
         includeSubtable: options.includeSubtable,
         includeRelated: options.includeRelated,
       });
-      const queryPath = path.join(resolvedOutputDir, `${name}.query.ts`);
+      const queryPath = path.join(outputDir, `${name}.query.ts`);
       await fs.writeFile(queryPath, queryContent, 'utf-8');
       console.log(`Successfully exported query builder to ${queryPath}`);
     }
