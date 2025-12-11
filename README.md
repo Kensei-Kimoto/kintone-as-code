@@ -6,6 +6,9 @@
 
 [日本語](README.ja.md)
 
+This project is an unofficial, third-party CLI tool for kintone.  
+`kintone` is a registered trademark of Cybozu, Inc. This project is not affiliated with, sponsored, or endorsed by Cybozu, Inc.
+
 Manage kintone app configurations as code with type safety using Effect-TS.
 
 ## Architecture (Summary)
